@@ -1,0 +1,24 @@
+import { formatDate } from "@/lib/format";
+import type { Formatter } from ".";
+import { eventDetail, eventLabel, eventName, eventUrl, vendorName } from "./message";
+
+const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+export const slack: Formatter = {
+  contentType: "application/json",
+  urlHint: "Use a Slack incoming webhook URL (https://hooks.slack.com/services/…).",
+  validUrl: (url) => url.origin === "https://hooks.slack.com" && url.pathname.startsWith("/services/"),
+  event: (event) => {
+    const name = escape(eventName(event));
+    const detail = escape(eventDetail(event, (price) => `~${price}~`));
+    const context = [vendorName(event), event.sku, formatDate(event.occurredAt)].filter(Boolean).join(" · ");
+    return JSON.stringify({
+      text: `${eventLabel(event)}: ${name}`,
+      blocks: [
+        { type: "section", text: { type: "mrkdwn", text: `*<${eventUrl(event)}|${name}>*\n${eventLabel(event)} · ${detail}` } },
+        { type: "context", elements: [{ type: "mrkdwn", text: escape(context) }] },
+      ],
+    });
+  },
+  text: (text) => JSON.stringify({ text: escape(text) }),
+};

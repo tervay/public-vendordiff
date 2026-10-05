@@ -6,9 +6,11 @@ const timestamptz = (name: string) => timestamp(name, { withTimezone: true });
 export const eventType = pgEnum("event_type", ["new", "removed", "out_of_stock", "restock", "price_change", "backorder", "rename"]);
 export const runStatus = pgEnum("run_status", ["ok", "failed", "rejected"]);
 export const stockStatus = pgEnum("stock_status", ["in_stock", "backorder", "out_of_stock"]);
+export const webhookType = pgEnum("webhook_type", ["slack", "discord", "plaintext"]);
 
 export type EventType = (typeof eventType.enumValues)[number];
 export type StockStatus = (typeof stockStatus.enumValues)[number];
+export type WebhookType = (typeof webhookType.enumValues)[number];
 
 export const products = pgTable(
   "products",
@@ -153,4 +155,26 @@ export const verifications = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [index("verifications_identifier_idx").on(t.identifier)],
+).enableRLS();
+
+export const webhooks = pgTable(
+  "webhooks",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: webhookType("type").notNull(),
+    url: text("url").notNull(),
+    vendorSlugs: text("vendor_slugs").array().notNull(),
+    eventTypes: eventType("event_types").array().notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    lastEventId: integer("last_event_id").notNull(),
+    failureCount: integer("failure_count").notNull().default(0),
+    lastError: text("last_error"),
+    lastDeliveredAt: timestamptz("last_delivered_at"),
+    createdAt: timestamptz("created_at").notNull().defaultNow(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("webhooks_user_idx").on(t.userId)],
 ).enableRLS();

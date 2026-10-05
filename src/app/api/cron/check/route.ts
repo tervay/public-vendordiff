@@ -1,6 +1,7 @@
 import { revalidateTag } from "next/cache";
 import { checkVendor } from "@/lib/check";
 import { vendors } from "@/vendors";
+import { deliverWebhooks } from "@/webhooks/deliver";
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -17,7 +18,8 @@ export async function GET(request: Request) {
   );
   revalidateTag("runs", "max");
   if (results.some(([, result]) => result.dirty)) revalidateTag("feed", "max");
+  const webhooks = await deliverWebhooks();
 
   const allOk = results.every(([, result]) => result.status === "ok");
-  return Response.json(Object.fromEntries(results), { status: allOk ? 200 : 500 });
+  return Response.json({ ...Object.fromEntries(results), webhooks }, { status: allOk ? 200 : 500 });
 }

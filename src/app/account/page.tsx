@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { WebhookList } from "@/components/WebhookList";
 import { signOut } from "@/lib/auth-actions";
 import { auth } from "@/lib/auth";
 
@@ -33,6 +34,7 @@ async function AccountView() {
       <form action={signOut}>
         <button className="text-sm text-muted hover:text-foreground">Sign out</button>
       </form>
+      <WebhookList userId={user.id} />
     </div>
   );
 }

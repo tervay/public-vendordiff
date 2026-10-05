@@ -47,7 +47,7 @@ This is a public site at https://vendordiff.com. It checks FRC vendor catalogs e
 - **`products`**: one row per vendor product, unique on (`vendor_slug`, `external_id`). Pages look products up by (`vendor_slug`, `id`), because vendors can change a product's handle. Holds the product's URL and image.
 - **`variants`**: the **current** state of each variant: price in cents, compare-at (sale) price, `stock` (`in_stock`, `backorder` or `out_of_stock`), `missing_count` and `removed_at`.
 - **`events`**: append-only, one row per change, with type `new`, `removed`, `out_of_stock`, `backorder`, `restock`, `price_change` or `rename`. Each row records the price and stock **after** the change, `old_price_cents` for price changes and `old_title` for renames. The feeds and the product history charts are both built from this table.
-  - Webhooks are planned for later. A webhook sender can read new events in `id` order.
+  - Webhooks read new events in `id` order (see Webhooks).
 - **`runs`**: one row per vendor check, with status `ok`, `failed` or `rejected`, a `baseline` flag, and variant and event counts. Rows are kept forever because events reference them.
 
 ## Check logic (`src/lib/check.ts`)
@@ -89,7 +89,7 @@ Every query in `src/lib/queries.ts` uses `"use cache: remote"` (Vercel's shared 
 | `/v/[vendor]/[product]/[variant]` | Built on first visit, then cached | One variant's current price and stock, price step chart, stock timeline and changes, without the other variants. `[variant]` is the variant's ID. Feed links and the variant table link here. |
 | `/history` | Rendered per request | `?vendor=&type=&before=`. Filters run in the database, with keyset pagination on event `id`. |
 | `/search` | Rendered per request | `?vendor=&q=&page=`. Matches product titles or SKUs using `ILIKE`, sped up by `pg_trgm` indexes. 50 results per page. |
-| `/account` | Rendered per request | The signed-in user's Google picture, name and email, and a "Sign out" button. Sends signed-out visitors to `/`. |
+| `/account` | Rendered per request | The signed-in user's Google picture, name and email, a "Sign out" button, and their webhooks. Sends signed-out visitors to `/`. |
 
 Every page's shell is static, but the navbar's account slot is rendered per request (see Auth).
 
@@ -110,6 +110,23 @@ Conventions:
 - Environment variables: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Better Auth throws without a secret, which would break the navbar on every page.
 - The Google OAuth client allows only `https://vendordiff.com` and `http://localhost:3000` redirect URIs, so **sign-in doesn't work on preview deployments**.
 
+## Webhooks
+
+- Users add webhooks on `/account`, up to 3 each (`MAX_WEBHOOKS`). Each webhook has a type (`slack`, `discord` or `plaintext`), a URL, a list of vendors and a list of change types. It gets every change that matches both lists.
+- **`webhooks`** table: `last_event_id` is the webhook's cursor. A new webhook starts at the current `max(events.id)`, so it never receives older changes. RLS is on with no policies, because the URLs are secrets.
+- Each type is one file in `src/webhooks/` that exports a `Formatter`: `validUrl`, `event` (the body for one change) and `text` (the body for a plain message). To add a type, add an enum value, a migration and a formatter.
+  - **Slack:** Block Kit, with no image. Slack rejects a whole message if it can't download an image. URLs must be `https://hooks.slack.com/services/…`.
+  - **Discord:** one embed per message, with `allowed_mentions: { parse: [] }`, so product titles can't ping anyone. URLs must be `https://discord.com/api/webhooks/…` or `https://discordapp.com/api/webhooks/…`.
+  - **Plaintext:** a `text/plain` body. URLs must use `https` and a domain name; `localhost` and IP-address hosts are rejected.
+- `deliverWebhooks()` (`src/webhooks/deliver.ts`) runs at the end of every cron run:
+  - It reads enabled webhooks, then every non-baseline event after the smallest cursor: 2 queries in total.
+  - Each webhook posts **one message per change**, 1 second apart, at most 20 per run. Any extra changes become one "and N more changes" message linking to `/history`.
+  - A failed post stops that webhook for the run. The cursor moves only past the last post that worked, so the rest are retried next hour. Delivery is at least once.
+  - After 24 failed runs in a row, the webhook is turned off and keeps its `last_error`. Turning it back on moves the cursor to the newest event.
+  - Posts stop starting 90 seconds after delivery begins. This keeps the cron function under 300 seconds even when endpoints are slow.
+  - Requests use `fetchWithRetry` from `src/adapters/http.ts` with `redirect: "error"`. Error messages name the webhook type, never the URL.
+- The **Send test** button posts the newest real change, so users can see the real format.
+
 ## Environments
 
 - `vercel env pull` writes the **production** Supabase credentials to `.env.local`.
@@ -119,6 +136,5 @@ Conventions:
 
 ## Not built yet
 
-- Webhooks for restock events. The `events` table is ready to serve as their source.
 - Grouping AndyMark's combined listings into one product.
 - Inventory counts. Public Shopify data only says whether something is in stock, backordered or out of stock.

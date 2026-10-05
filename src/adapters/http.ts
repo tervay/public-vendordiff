@@ -11,19 +11,27 @@ const retryDelayMs = (res: Response | null, attempt: number) => {
   return Math.min(delay, MAX_RETRY_DELAY_MS);
 };
 
-export async function fetchJson<T>(url: string, body?: unknown): Promise<T> {
-  const method = body === undefined ? "GET" : "POST";
+export async function fetchWithRetry(url: string, init: RequestInit, label = url): Promise<Response> {
+  const method = init.method ?? "GET";
   for (let attempt = 1; ; attempt++) {
     const res = await fetch(url, {
-      method,
-      headers: { "user-agent": USER_AGENT, accept: "application/json", "content-type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      ...init,
+      headers: { "user-agent": USER_AGENT, ...init.headers },
       signal: AbortSignal.timeout(30_000),
     }).catch(() => null);
-    if (res?.ok) return (await res.json()) as T;
+    if (res?.ok) return res;
     if (attempt === MAX_ATTEMPTS || (res && !RETRYABLE_STATUSES.has(res.status))) {
-      throw new Error(`${method} ${url} failed: ${res?.status ?? "network error"}`);
+      throw new Error(`${method} ${label} failed: ${res?.status ?? "network error"}`);
     }
     await sleep(retryDelayMs(res, attempt));
   }
+}
+
+export async function fetchJson<T>(url: string, body?: unknown): Promise<T> {
+  const res = await fetchWithRetry(url, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { accept: "application/json", "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  return (await res.json()) as T;
 }

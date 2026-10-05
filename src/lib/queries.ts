@@ -19,27 +19,29 @@ export async function getLatestRuns() {
     .orderBy(runs.vendorSlug, desc(runs.startedAt));
 }
 
+export const feedColumns = {
+  id: events.id,
+  type: events.type,
+  occurredAt: events.occurredAt,
+  oldPriceCents: events.oldPriceCents,
+  oldTitle: events.oldTitle,
+  priceCents: events.priceCents,
+  vendorSlug: events.vendorSlug,
+  variantId: events.variantId,
+  variantTitle: variants.title,
+  sku: variants.sku,
+  productTitle: products.title,
+  productId: products.id,
+  handle: products.handle,
+  imageUrl: products.imageUrl,
+};
+
 export async function getEvents({ vendor, type, before, renames }: { vendor?: string; type?: EventType; before?: number; renames?: boolean }) {
   "use cache: remote";
   cacheLife("days");
   cacheTag(scopeTag(vendor));
   return db
-    .select({
-      id: events.id,
-      type: events.type,
-      occurredAt: events.occurredAt,
-      oldPriceCents: events.oldPriceCents,
-      oldTitle: events.oldTitle,
-      priceCents: events.priceCents,
-      vendorSlug: events.vendorSlug,
-      variantId: events.variantId,
-      variantTitle: variants.title,
-      sku: variants.sku,
-      productTitle: products.title,
-      productId: products.id,
-      handle: products.handle,
-      imageUrl: products.imageUrl,
-    })
+    .select(feedColumns)
     .from(events)
     .innerJoin(runs, eq(runs.id, events.runId))
     .innerJoin(variants, eq(variants.id, events.variantId))

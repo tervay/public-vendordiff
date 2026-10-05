@@ -1,4 +1,4 @@
-import type { EventType, StockStatus } from "@/db/schema";
+import type { EventType, StockStatus, WebhookType } from "@/db/schema";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const dateTime = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" });
@@ -24,7 +24,13 @@ export const stockLabels: Record<StockStatus, string> = {
   out_of_stock: "Out of stock",
 };
 
-export const isEventType = (value: unknown): value is EventType => typeof value === "string" && Object.hasOwn(eventLabels, value);
+export const webhookTypeLabels: Record<WebhookType, string> = {
+  slack: "Slack",
+  discord: "Discord",
+  plaintext: "Plain text",
+};
+
+export const isEventType =(value: unknown): value is EventType => typeof value === "string" && Object.hasOwn(eventLabels, value);
 
 export const variantName = (productTitle: string, variantTitle: string) =>
   variantTitle ? `${productTitle} — ${variantTitle}` : productTitle;
