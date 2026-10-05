@@ -94,6 +94,7 @@ Conventions:
 - Keep `searchParams` off the high-traffic pages. Filtering on `/` and `/v/[vendor]` happens in the browser so those pages stay static.
 - Links in feeds use `prefetch={false}`, so links scrolling into view don't trigger page builds.
 - Dates are shown in America/New_York time and formatted on the server. Product images load straight from vendor CDNs with a plain `<img>`, which avoids Vercel image-optimization quotas.
+- Vendor icons are copied from each vendor's site into `public/vendors/` and referenced by `Vendor.icon`. They are served as static files and shown in the feeds' `VendorBadge`.
 
 ## Environments
 

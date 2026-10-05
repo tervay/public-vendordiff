@@ -6,7 +6,7 @@ import { events, products, runs, variants } from "@/db/schema";
 import type { Vendor } from "@/vendors";
 import { checkVendor } from "./check";
 
-const vendor: Vendor = { slug: "test", name: "Test", platform: "shopify", url: "https://example.com" };
+const vendor: Vendor = { slug: "test", name: "Test", platform: "shopify", url: "https://example.com", icon: "/vendors/test.png" };
 
 const item = (id: string, overrides: Partial<CatalogVariant> = {}): CatalogVariant => ({
   externalProductId: `p-${id}`,

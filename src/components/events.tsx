@@ -25,6 +25,21 @@ export function EventBadge({ type }: { type: EventType }) {
   return <span className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-medium ${badgeStyles[type]}`}>{eventLabels[type]}</span>;
 }
 
+export function VendorIcon({ icon, className }: { icon: string; className: string }) {
+  return <img src={icon} alt="" className={`shrink-0 rounded-full bg-white object-contain ${className}`} />;
+}
+
+export function VendorBadge({ slug }: { slug: string }) {
+  const vendor = vendorBySlug(slug);
+  if (!vendor) return null;
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-hairline py-0.5 pr-2 pl-0.5 text-xs">
+      <VendorIcon icon={vendor.icon} className="size-4" />
+      {vendor.name}
+    </span>
+  );
+}
+
 export function PriceText({ type, oldPriceCents, priceCents }: { type: EventType; oldPriceCents: number | null; priceCents: number }) {
   if (type !== "price_change" || oldPriceCents === null) return <span>{formatPrice(priceCents)}</span>;
   const direction = priceCents > oldPriceCents ? "▲" : "▼";
@@ -52,8 +67,9 @@ export function EventRow({ event, showVendor }: { event: FeedEvent; showVendor: 
           {variantName(event.productTitle, event.variantTitle)}
         </Link>
         {event.type === "rename" && <div className="truncate text-sm text-muted">was {event.oldTitle}</div>}
-        <div className="truncate text-sm text-muted">
-          {[showVendor && vendorBySlug(event.vendorSlug)?.name, event.sku, formatDate(event.occurredAt)].filter(Boolean).join(" · ")}
+        <div className="flex items-center gap-2 text-sm text-muted">
+          {showVendor && <VendorBadge slug={event.vendorSlug} />}
+          <span className="truncate">{[event.sku, formatDate(event.occurredAt)].filter(Boolean).join(" · ")}</span>
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1 text-sm tabular-nums">
