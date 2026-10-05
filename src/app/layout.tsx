@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: { default: "FRC Vendor Tracker", template: "%s · FRC Vendor Tracker" },
-  description: "Stock and price changes across FRC vendors, checked six times a day.",
+  description: "Stock and price changes across FRC vendors, checked every hour.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -37,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </header>
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">{children}</main>
         <footer className="mx-auto w-full max-w-4xl px-4 py-6 text-xs text-subtle">
-          Vendor sites are checked six times a day. Not affiliated with any vendor.
+          Vendor sites are checked every hour. Not affiliated with any vendor.
         </footer>
       </body>
     </html>

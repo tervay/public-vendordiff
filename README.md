@@ -1,6 +1,6 @@
 # FRC Vendor Tracker
 
-A public site that tracks stock and price changes across FRC vendors. Each vendor is checked six times a day by Vercel Cron, and only changes are stored in Postgres.
+A public site that tracks stock and price changes across FRC vendors. Every vendor is checked hourly by Vercel Cron, and only changes are stored in Postgres.
 
 ## Local development
 
@@ -25,7 +25,7 @@ CRON_SECRET=dev-secret
 To run a check by hand:
 
 ```bash
-curl -H "Authorization: Bearer dev-secret" localhost:3000/api/cron/check/andymark
+curl -H "Authorization: Bearer dev-secret" localhost:3000/api/cron/check
 ```
 
 ## Commands
@@ -43,7 +43,7 @@ curl -H "Authorization: Bearer dev-secret" localhost:3000/api/cron/check/andymar
 2. Add Supabase from the Vercel Marketplace. This sets `POSTGRES_URL` (the transaction pooler) and `POSTGRES_URL_NON_POOLING`.
 3. Add a `CRON_SECRET` environment variable with a long random value. Vercel Cron sends it automatically.
 4. Run `vercel env pull .env.local`, then `npm run db:migrate`. This creates the `pg_trgm` extension and the tables.
-5. Deploy. `vercel.ts` registers 60 cron jobs: 10 vendors × 6 times a day.
+5. Deploy. `vercel.ts` registers 24 daily cron jobs, one per hour, because Hobby allows each job to run only once a day. Each run checks every vendor in parallel.
 
 The first successful run for each vendor is a baseline. It records every variant but stays out of the feeds.
 
