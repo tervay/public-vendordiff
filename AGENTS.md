@@ -85,7 +85,8 @@ Every query in `src/lib/queries.ts` uses `"use cache: remote"` (Vercel's shared 
 |---|---|---|
 | `/` | Static, from the CDN | Vendor status cards and the latest 100 events. Filter chips work in the browser. |
 | `/v/[vendor]` | Static; `generateStaticParams` lists every vendor | Vendor status, a search box and the latest 100 events |
-| `/v/[vendor]/[product]` | Built on first visit, then cached | Variant table, price step chart and stock timeline for the selected variant, plus its full list of changes. `[product]` is `<id>-<handle>`; only the ID is used, so links survive renames. |
+| `/v/[vendor]/[product]` | Built on first visit, then cached | Variant table, price step chart and stock timeline for the selected variant, plus its full list of changes. `[product]` is `<id>-<handle>`; only the ID is used, so links survive renames. Shows the first variant. |
+| `/v/[vendor]/[product]/[variant]` | Built on first visit, then cached | One variant's current price and stock, price step chart, stock timeline and changes, without the other variants. `[variant]` is the variant's ID. Feed links and the variant table link here. |
 | `/history` | Rendered per request | `?vendor=&type=&before=`. Filters run in the database, with keyset pagination on event `id`. |
 | `/search` | Rendered per request | `?vendor=&q=&page=`. Matches product titles or SKUs using `ILIKE`, sped up by `pg_trgm` indexes. 50 results per page. |
 

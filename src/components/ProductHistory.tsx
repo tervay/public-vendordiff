@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import Link from "next/link";
 import { formatDate, formatPrice, stockLabels } from "@/lib/format";
 import type { ProductData } from "@/lib/queries";
 import { EventBadge, PriceText, stockColors } from "./events";
@@ -19,7 +17,7 @@ const toPoints = (history: ProductData["history"], variant: Variant, asOf: Date)
   return [...byTime.values()];
 };
 
-function StockLabel({ variant }: { variant: Variant }) {
+export function StockLabel({ variant }: { variant: Variant }) {
   if (variant.removedAt) return <span className="text-subtle">Removed</span>;
   return (
     <span className="flex items-center gap-1.5">
@@ -29,7 +27,7 @@ function StockLabel({ variant }: { variant: Variant }) {
   );
 }
 
-function VariantPrice({ variant }: { variant: Variant }) {
+export function VariantPrice({ variant }: { variant: Variant }) {
   const onSale = variant.compareAtCents !== null && variant.compareAtCents > variant.priceCents;
   return (
     <>
@@ -39,48 +37,49 @@ function VariantPrice({ variant }: { variant: Variant }) {
   );
 }
 
-export function ProductHistory({ variants, history, asOf }: Omit<ProductData, "product">) {
-  const [selectedId, setSelectedId] = useState(variants[0]?.id);
-  const selected = variants.find((v) => v.id === selectedId);
-  if (!selected) return <p className="text-muted">This product has no variants listed.</p>;
-  const variantHistory = history.filter((event) => event.variantId === selected.id);
+export function VariantTable({ variants, selectedId, basePath }: { variants: Variant[]; selectedId: number; basePath: string }) {
+  return (
+    <div className="max-h-96 overflow-auto rounded-lg border border-hairline bg-surface">
+      <table className="w-full text-sm">
+        <thead className="sticky top-0 bg-surface text-left text-subtle">
+          <tr>
+            <th className="px-3 py-2 font-medium">Variant</th>
+            <th className="px-3 py-2 font-medium">SKU</th>
+            <th className="px-3 py-2 text-right font-medium">Price</th>
+            <th className="px-3 py-2 font-medium">Stock</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-hairline">
+          {variants.map((variant) => (
+            <tr key={variant.id} className={variant.id === selectedId ? "bg-hairline/60" : undefined}>
+              <td className="px-3 py-2">
+                <Link href={`${basePath}/${variant.id}`} prefetch={false} className="hover:underline">
+                  {variant.title || "Default"}
+                </Link>
+              </td>
+              <td className="px-3 py-2 text-muted">{variant.sku}</td>
+              <td className="px-3 py-2 text-right tabular-nums">
+                <VariantPrice variant={variant} />
+              </td>
+              <td className="px-3 py-2">
+                <StockLabel variant={variant} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function VariantHistory({ variant, history, asOf, title }: { variant: Variant; history: ProductData["history"]; asOf: Date; title?: string }) {
+  const variantHistory = history.filter((event) => event.variantId === variant.id);
 
   return (
-    <div className="space-y-10">
-      <div className="max-h-96 overflow-auto rounded-lg border border-hairline bg-surface">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-surface text-left text-subtle">
-            <tr>
-              <th className="px-3 py-2 font-medium">Variant</th>
-              <th className="px-3 py-2 font-medium">SKU</th>
-              <th className="px-3 py-2 text-right font-medium">Price</th>
-              <th className="px-3 py-2 font-medium">Stock</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-hairline">
-            {variants.map((variant) => (
-              <tr key={variant.id} className={variant.id === selected.id ? "bg-hairline/60" : undefined}>
-                <td className="px-3 py-2">
-                  <button type="button" onClick={() => setSelectedId(variant.id)} className="text-left hover:underline">
-                    {variant.title || "Default"}
-                  </button>
-                </td>
-                <td className="px-3 py-2 text-muted">{variant.sku}</td>
-                <td className="px-3 py-2 text-right tabular-nums">
-                  <VariantPrice variant={variant} />
-                </td>
-                <td className="px-3 py-2">
-                  <StockLabel variant={variant} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
+    <>
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">{selected.title ? `History: ${selected.title}` : "History"}</h2>
-        <HistoryCharts points={toPoints(variantHistory, selected, asOf)} />
+        <h2 className="text-lg font-semibold">{title ? `History: ${title}` : "History"}</h2>
+        <HistoryCharts points={toPoints(variantHistory, variant, asOf)} />
       </section>
 
       <section className="space-y-2">
@@ -97,6 +96,6 @@ export function ProductHistory({ variants, history, asOf }: Omit<ProductData, "p
           ))}
         </ol>
       </section>
-    </div>
+    </>
   );
 }

@@ -31,6 +31,7 @@ export async function getEvents({ vendor, type, before }: { vendor?: string; typ
       oldPriceCents: events.oldPriceCents,
       priceCents: events.priceCents,
       vendorSlug: events.vendorSlug,
+      variantId: events.variantId,
       variantTitle: variants.title,
       sku: variants.sku,
       productTitle: products.title,

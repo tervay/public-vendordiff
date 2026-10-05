@@ -48,7 +48,7 @@ export function EventRow({ event, showVendor }: { event: FeedEvent; showVendor: 
     <li className="flex items-center gap-3 py-3">
       <Thumbnail src={event.imageUrl} />
       <div className="min-w-0 flex-1">
-        <Link href={`/v/${event.vendorSlug}/${event.productId}-${event.handle}`} prefetch={false} className="block truncate font-medium hover:underline">
+        <Link href={`/v/${event.vendorSlug}/${event.productId}-${event.handle}/${event.variantId}`} prefetch={false} className="block truncate font-medium hover:underline">
           {variantName(event.productTitle, event.variantTitle)}
         </Link>
         <div className="truncate text-sm text-muted">
