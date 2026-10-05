@@ -32,7 +32,7 @@ async function HistoryView({ searchParams }: Pick<PageProps<"/history">, "search
   const vendor = typeof params.vendor === "string" ? vendorBySlug(params.vendor) : undefined;
   const type = isEventType(params.type) ? params.type : undefined;
   const before = Number(params.before) || undefined;
-  const events = await getEvents({ vendor: vendor?.slug, type, before });
+  const events = await getEvents({ vendor: vendor?.slug, type, before, renames: true });
   const last = events.at(-1);
 
   return (
@@ -46,7 +46,7 @@ async function HistoryView({ searchParams }: Pick<PageProps<"/history">, "search
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
-        {feedFilters.map((filter) => (
+        {[...feedFilters, "rename" as const].map((filter) => (
           <Link key={filter ?? "all"} href={historyHref({ vendor: vendor?.slug, type: filter ?? undefined })} className={chipClass((filter ?? undefined) === type)}>
             {filter ? eventLabels[filter] : "All changes"}
           </Link>

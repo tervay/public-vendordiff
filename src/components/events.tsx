@@ -51,13 +51,14 @@ export function EventRow({ event, showVendor }: { event: FeedEvent; showVendor: 
         <Link href={`/v/${event.vendorSlug}/${event.productId}-${event.handle}/${event.variantId}`} prefetch={false} className="block truncate font-medium hover:underline">
           {variantName(event.productTitle, event.variantTitle)}
         </Link>
+        {event.type === "rename" && <div className="truncate text-sm text-muted">was {event.oldTitle}</div>}
         <div className="truncate text-sm text-muted">
           {[showVendor && vendorBySlug(event.vendorSlug)?.name, event.sku, formatDate(event.occurredAt)].filter(Boolean).join(" · ")}
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1 text-sm tabular-nums">
         <EventBadge type={event.type} />
-        <PriceText {...event} />
+        {event.type !== "rename" && <PriceText {...event} />}
       </div>
     </li>
   );

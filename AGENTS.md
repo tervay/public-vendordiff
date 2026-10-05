@@ -59,7 +59,7 @@ This is a public site at https://vendordiff.com. It checks FRC vendor catalogs e
 3. **Apply the changes in one transaction:**
    - Insert or update **only products and variants that changed**. Unchanged rows are never written, which is why there is no `lastSeenAt` column.
    - **Stock and price changes are separate events**, so a variant whose stock and price both change gets two events.
-   - A `rename` event is recorded when a variant's full name ("Product — Variant") changes, so renaming a product gives one event per variant. Renames appear only on product pages, never in the feeds.
+   - A `rename` event is recorded when a variant's full name ("Product — Variant") changes, so renaming a product gives one event per variant. Renames appear on product pages and `/history`, never in the home or vendor feeds.
    - A stock change's event type is named after the new state: `in_stock` → `restock`, `backorder` → `backorder`, `out_of_stock` → `out_of_stock`. Going from backorder back to in stock is a `restock`.
    - A variant missing from the fetch has its `missing_count` raised by 1. When it reaches 2, the variant is marked `removed`.
    - A variant that comes back after removal gets a new `new` event.

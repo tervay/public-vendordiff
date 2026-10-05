@@ -19,7 +19,7 @@ export async function getLatestRuns() {
     .orderBy(runs.vendorSlug, desc(runs.startedAt));
 }
 
-export async function getEvents({ vendor, type, before }: { vendor?: string; type?: EventType; before?: number }) {
+export async function getEvents({ vendor, type, before, renames }: { vendor?: string; type?: EventType; before?: number; renames?: boolean }) {
   "use cache: remote";
   cacheLife("days");
   cacheTag(scopeTag(vendor));
@@ -29,6 +29,7 @@ export async function getEvents({ vendor, type, before }: { vendor?: string; typ
       type: events.type,
       occurredAt: events.occurredAt,
       oldPriceCents: events.oldPriceCents,
+      oldTitle: events.oldTitle,
       priceCents: events.priceCents,
       vendorSlug: events.vendorSlug,
       variantId: events.variantId,
@@ -46,7 +47,7 @@ export async function getEvents({ vendor, type, before }: { vendor?: string; typ
     .where(
       and(
         eq(runs.baseline, false),
-        ne(events.type, "rename"),
+        renames ? undefined : ne(events.type, "rename"),
         vendor ? eq(events.vendorSlug, vendor) : undefined,
         type ? eq(events.type, type) : undefined,
         before ? lt(events.id, before) : undefined,
