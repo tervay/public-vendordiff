@@ -1,3 +1,4 @@
+import type { StockStatus } from "@/db/schema";
 import type { Vendor } from "@/vendors";
 import { fetchRev } from "./rev";
 import { fetchShopify } from "./shopify";
@@ -12,7 +13,7 @@ export type CatalogVariant = {
   sku: string | null;
   priceCents: number;
   compareAtCents: number | null;
-  available: boolean;
+  stock: StockStatus;
   imageUrl: string | null;
 };
 

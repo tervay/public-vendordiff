@@ -30,9 +30,14 @@ This is a public site at https://vendordiff.com. It checks FRC vendor catalogs e
 ## Vendors and adapters
 
 - The vendor list lives only in code (`src/vendors.ts`). There is no vendors table.
-- **Shopify** (`src/adapters/shopify.ts`): fetches `{url}/products.json?limit=250&page=N` until a page comes back empty, waiting 0.5s between pages.
+- **Shopify** (`src/adapters/shopify.ts`): queries the Storefront GraphQL API at `{url}/api/2026-10/graphql.json` without an access token, 250 products per page, following the cursor and waiting 0.5s between pages.
+  - We use GraphQL instead of `products.json` because only GraphQL reports backorders: `products.json` marks a backordered variant as `available`. GraphQL's `availableForSale` and `currentlyNotInStock` fields give the three stock states. Responses are also about 5 times smaller.
+  - GraphQL IDs look like `gid://shopify/ProductVariant/123`. We store only the number, which matches the IDs `products.json` used.
+  - The variant title is the `selectedOptions` values joined with " / ". GraphQL's own `title` field is wrong for some CTRE variants.
+  - A run fails if any product has more than 250 variants, rather than silently dropping the rest.
+  - Stock counts (`quantityAvailable`) need an access token, so we can't read them.
   - A vendor can list Shopify `vendor` values to skip in `ignoredShopifyVendors`. WCP sets `["N/A"]`, because those are hub pages (for example "10DP Gears" or "LimeLight Vision Camera") with no SKU and a placeholder price. The real products are listed separately. Don't skip empty SKUs in general: SDS and Armabot have no SKUs at all.
-- **REV** (`src/adapters/rev.ts`): one flat JSON feed with no IDs, so the SKU serves as both the product ID and the variant ID.
+- **REV** (`src/adapters/rev.ts`): one flat JSON feed with no IDs, so the SKU serves as both the product ID and the variant ID. It reports only "Available" or "Out of Stock", so REV variants are never `backorder`.
 - `src/adapters/http.ts` retries on 429 and 5xx responses, honoring `Retry-After` up to 30 seconds.
 - `fetchCatalog` drops items with invalid prices and **removes duplicate variant IDs**. AndyMark lists some variants under more than one product, so one product in such a pair can end up with no variants.
 - Catalog sizes as of October 2026: AndyMark about 5,400 variants, WCP about 1,950, all vendors together about 10,500.
@@ -40,8 +45,8 @@ This is a public site at https://vendordiff.com. It checks FRC vendor catalogs e
 ## Data model (`src/db/schema.ts`)
 
 - **`products`**: one row per vendor product, unique on (`vendor_slug`, `external_id`). Pages look products up by (`vendor_slug`, `handle`). Holds the product's URL and image.
-- **`variants`**: the **current** state of each variant: price in cents, compare-at (sale) price, stock, `missing_count` and `removed_at`.
-- **`events`**: append-only, one row per change, with type `new`, `removed`, `out_of_stock`, `restock` or `price_change`. Each row records the price and stock **after** the change, and `old_price_cents` for price changes. The feeds and the product history charts are both built from this table.
+- **`variants`**: the **current** state of each variant: price in cents, compare-at (sale) price, `stock` (`in_stock`, `backorder` or `out_of_stock`), `missing_count` and `removed_at`.
+- **`events`**: append-only, one row per change, with type `new`, `removed`, `out_of_stock`, `backorder`, `restock` or `price_change`. Each row records the price and stock **after** the change, and `old_price_cents` for price changes. The feeds and the product history charts are both built from this table.
   - Webhooks are planned for later. A webhook sender can read new events in `id` order.
 - **`runs`**: one row per vendor check, with status `ok`, `failed` or `rejected`, a `baseline` flag, and variant and event counts. Rows are kept forever because events reference them.
 
@@ -54,6 +59,7 @@ This is a public site at https://vendordiff.com. It checks FRC vendor catalogs e
 3. **Apply the changes in one transaction:**
    - Insert or update **only products and variants that changed**. Unchanged rows are never written, which is why there is no `lastSeenAt` column.
    - **Stock and price changes are separate events**, so a variant whose stock and price both change gets two events.
+   - A stock change's event type is named after the new state: `in_stock` → `restock`, `backorder` → `backorder`, `out_of_stock` → `out_of_stock`. Going from backorder back to in stock is a `restock`.
    - A variant missing from the fetch has its `missing_count` raised by 1. When it reaches 2, the variant is marked `removed`.
    - A variant that comes back after removal gets a new `new` event.
    - Writes are batched, 1,000 rows per statement. A normal run is about 4 SQL statements per vendor.
@@ -98,4 +104,4 @@ Conventions:
 
 - Webhooks for restock events. The `events` table is ready to serve as their source.
 - Grouping AndyMark's combined listings into one product.
-- Inventory counts. Public Shopify feeds only say whether something is in stock.
+- Inventory counts. Public Shopify data only says whether something is in stock, backordered or out of stock.

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { EventType } from "@/db/schema";
+import type { EventType, StockStatus } from "@/db/schema";
 import { eventLabels, formatDate, formatPrice, variantName } from "@/lib/format";
 import type { FeedEvent } from "@/lib/queries";
 import { vendorBySlug } from "@/vendors";
@@ -8,6 +8,7 @@ const badgeStyles: Record<EventType, string> = {
   new: "bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200",
   restock: "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-200",
   out_of_stock: "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200",
+  backorder: "bg-orange-100 text-orange-900 dark:bg-orange-950 dark:text-orange-200",
   price_change: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
   removed: "bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200",
 };
@@ -15,7 +16,9 @@ const badgeStyles: Record<EventType, string> = {
 export const chipClass = (active: boolean) =>
   `rounded-full border px-3 py-1 text-sm ${active ? "border-foreground bg-foreground text-background" : "border-hairline hover:border-subtle"}`;
 
-export const feedFilters: (EventType | null)[] = [null, "new", "restock", "out_of_stock", "price_change", "removed"];
+export const feedFilters: (EventType | null)[] = [null, "new", "restock", "out_of_stock", "backorder", "price_change", "removed"];
+
+export const stockColors: Record<StockStatus, string> = { in_stock: "bg-good", backorder: "bg-warning", out_of_stock: "bg-critical" };
 
 export function EventBadge({ type }: { type: EventType }) {
   return <span className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-medium ${badgeStyles[type]}`}>{eventLabels[type]}</span>;

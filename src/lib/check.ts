@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { fetchCatalog, type CatalogVariant } from "@/adapters";
 import { db } from "@/db";
-import { events, products, runs, variants, type EventType } from "@/db/schema";
+import { events, products, runs, variants, type EventType, type StockStatus } from "@/db/schema";
 import type { Vendor } from "@/vendors";
 
 const BATCH_SIZE = 1000;
@@ -12,13 +12,15 @@ const MIN_CATALOG_RATIO = 0.5;
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type StoredVariant = Pick<
   typeof variants.$inferSelect,
-  "id" | "externalId" | "productId" | "sku" | "title" | "priceCents" | "compareAtCents" | "available" | "missingCount" | "removedAt"
+  "id" | "externalId" | "productId" | "sku" | "title" | "priceCents" | "compareAtCents" | "stock" | "missingCount" | "removedAt"
 >;
 type PendingEvent = Omit<typeof events.$inferInsert, "variantId" | "runId"> & { externalVariantId: string };
 
 export type RunResult = Pick<typeof runs.$inferSelect, "status" | "variantCount" | "eventCount" | "error"> & { dirty: boolean };
 
-const TRACKED_FIELDS = ["productId", "sku", "title", "priceCents", "compareAtCents", "available", "missingCount"] as const;
+const TRACKED_FIELDS = ["productId", "sku", "title", "priceCents", "compareAtCents", "stock", "missingCount"] as const;
+
+const stockEvents: Record<StockStatus, EventType> = { in_stock: "restock", backorder: "backorder", out_of_stock: "out_of_stock" };
 
 const chunks = <T>(items: T[]) =>
   Array.from({ length: Math.ceil(items.length / BATCH_SIZE) }, (_, i) => items.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE));
@@ -74,7 +76,7 @@ function applyCatalog(vendorSlug: string, catalog: CatalogVariant[], baseline: b
         title: variants.title,
         priceCents: variants.priceCents,
         compareAtCents: variants.compareAtCents,
-        available: variants.available,
+        stock: variants.stock,
         missingCount: variants.missingCount,
         removedAt: variants.removedAt,
       })
@@ -100,7 +102,7 @@ function applyCatalog(vendorSlug: string, catalog: CatalogVariant[], baseline: b
             title: variants.title,
             priceCents: variants.priceCents,
             compareAtCents: variants.compareAtCents,
-            available: variants.available,
+            stock: variants.stock,
             missingCount: variants.missingCount,
             removedAt: variants.removedAt,
           }),
@@ -185,26 +187,26 @@ function diffVariants(
       title: item.variantTitle,
       priceCents: item.priceCents,
       compareAtCents: item.compareAtCents,
-      available: item.available,
+      stock: item.stock,
       missingCount: 0,
       removedAt: null,
     };
     const record = (type: EventType, oldPriceCents: number | null = null) =>
-      pending.push({ externalVariantId: item.externalVariantId, vendorSlug, type, oldPriceCents, priceCents: item.priceCents, available: item.available });
+      pending.push({ externalVariantId: item.externalVariantId, vendorSlug, type, oldPriceCents, priceCents: item.priceCents, stock: item.stock });
 
     if (!old || old.removedAt) {
       record("new", old?.priceCents ?? null);
       upserts.push(row);
       continue;
     }
-    if (old.available !== item.available) record(item.available ? "restock" : "out_of_stock");
+    if (old.stock !== item.stock) record(stockEvents[item.stock]);
     if (old.priceCents !== item.priceCents) record("price_change", old.priceCents);
     if (TRACKED_FIELDS.some((field) => old[field] !== row[field])) upserts.push(row);
   }
 
   const missing = [...stored.values()].filter((v) => !v.removedAt && !seen.has(v.externalId));
   for (const v of missing.filter((v) => v.missingCount + 1 >= REMOVE_AFTER_MISSES)) {
-    pending.push({ externalVariantId: v.externalId, vendorSlug, type: "removed", oldPriceCents: null, priceCents: v.priceCents, available: false });
+    pending.push({ externalVariantId: v.externalId, vendorSlug, type: "removed", oldPriceCents: null, priceCents: v.priceCents, stock: "out_of_stock" });
   }
 
   return { upserts, missingIds: missing.map((v) => v.id), events: pending };

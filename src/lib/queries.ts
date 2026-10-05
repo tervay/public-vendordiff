@@ -75,7 +75,7 @@ export async function getProduct(vendor: string, handle: string) {
         sku: variants.sku,
         priceCents: variants.priceCents,
         compareAtCents: variants.compareAtCents,
-        available: variants.available,
+        stock: variants.stock,
         removedAt: variants.removedAt,
       })
       .from(variants)
@@ -89,7 +89,7 @@ export async function getProduct(vendor: string, handle: string) {
         occurredAt: events.occurredAt,
         oldPriceCents: events.oldPriceCents,
         priceCents: events.priceCents,
-        available: events.available,
+        stock: events.stock,
       })
       .from(events)
       .innerJoin(variants, eq(variants.id, events.variantId))
@@ -115,7 +115,7 @@ export async function searchProducts(vendor: string | undefined, query: string, 
       imageUrl: products.imageUrl,
       minPriceCents: min(variants.priceCents),
       activeCount: sql<number>`count(*) filter (where ${variants.removedAt} is null)`.mapWith(Number),
-      inStockCount: sql<number>`count(*) filter (where ${variants.removedAt} is null and ${variants.available})`.mapWith(Number),
+      inStockCount: sql<number>`count(*) filter (where ${variants.removedAt} is null and ${variants.stock} = 'in_stock')`.mapWith(Number),
     })
     .from(products)
     .innerJoin(variants, eq(variants.productId, products.id))

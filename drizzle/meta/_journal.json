@@ -15,6 +15,20 @@
       "when": 1791211138959,
       "tag": "0001_init",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791216897752,
+      "tag": "0002_stock_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791216906128,
+      "tag": "0003_drop_available",
+      "breakpoints": true
     }
   ]
 }

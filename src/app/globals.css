@@ -10,6 +10,7 @@
   --series-1: #2a78d6;
   --status-good: #0ca30c;
   --status-critical: #d03b3b;
+  --status-warning: #e08a00;
 }
 
 @theme inline {
@@ -22,6 +23,7 @@
   --color-series-1: var(--series-1);
   --color-good: var(--status-good);
   --color-critical: var(--status-critical);
+  --color-warning: var(--status-warning);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

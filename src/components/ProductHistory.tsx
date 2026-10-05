@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatDate, formatPrice, stockLabels } from "@/lib/format";
 import type { ProductData } from "@/lib/queries";
-import { EventBadge, PriceText } from "./events";
+import { EventBadge, PriceText, stockColors } from "./events";
 import { HistoryCharts, type HistoryPoint } from "./HistoryCharts";
 
 type Variant = ProductData["variants"][number];
@@ -12,10 +12,10 @@ const toPoints = (history: ProductData["history"], variant: Variant, asOf: Date)
   const byTime = new Map<number, HistoryPoint>();
   for (const event of history) {
     const t = new Date(event.occurredAt).getTime();
-    byTime.set(t, { t, priceCents: event.priceCents, inStock: event.available });
+    byTime.set(t, { t, priceCents: event.priceCents, stock: event.stock });
   }
   const now = new Date(asOf).getTime();
-  byTime.set(now, { t: now, priceCents: variant.priceCents, inStock: variant.available && !variant.removedAt });
+  byTime.set(now, { t: now, priceCents: variant.priceCents, stock: variant.removedAt ? "out_of_stock" : variant.stock });
   return [...byTime.values()];
 };
 
@@ -23,8 +23,8 @@ function StockLabel({ variant }: { variant: Variant }) {
   if (variant.removedAt) return <span className="text-subtle">Removed</span>;
   return (
     <span className="flex items-center gap-1.5">
-      <span className={`size-2 rounded-full ${variant.available ? "bg-good" : "bg-critical"}`} />
-      {variant.available ? "In stock" : "Out of stock"}
+      <span className={`size-2 rounded-full ${stockColors[variant.stock]}`} />
+      {stockLabels[variant.stock]}
     </span>
   );
 }

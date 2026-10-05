@@ -1,9 +1,11 @@
 "use client";
 
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { formatDate, formatPrice, formatShortDate } from "@/lib/format";
+import type { StockStatus } from "@/db/schema";
+import { formatDate, formatPrice, formatShortDate, stockLabels } from "@/lib/format";
+import { stockColors } from "./events";
 
-export type HistoryPoint = { t: number; priceCents: number; inStock: boolean };
+export type HistoryPoint = { t: number; priceCents: number; stock: StockStatus };
 
 const axisTick = { fill: "var(--subtle)", fontSize: 12 };
 const priceDomain: [(min: number) => number, (max: number) => number] = [
@@ -12,7 +14,7 @@ const priceDomain: [(min: number) => number, (max: number) => number] = [
 ];
 
 export function HistoryCharts({ points }: { points: HistoryPoint[] }) {
-  const segments = points.slice(0, -1).map((point, i) => ({ start: point.t, end: points[i + 1].t, inStock: point.inStock }));
+  const segments = points.slice(0, -1).map((point, i) => ({ start: point.t, end: points[i + 1].t, stock: point.stock }));
   return (
     <div className="space-y-6">
       <figure>
@@ -46,20 +48,19 @@ export function HistoryCharts({ points }: { points: HistoryPoint[] }) {
       <figure>
         <figcaption className="mb-2 flex items-center gap-4 text-sm">
           <span className="font-medium">Stock</span>
-          <span className="flex items-center gap-1 text-muted">
-            <span className="size-2.5 rounded-sm bg-good" /> In stock
-          </span>
-          <span className="flex items-center gap-1 text-muted">
-            <span className="size-2.5 rounded-sm bg-critical" /> Out of stock
-          </span>
+          {Object.entries(stockLabels).map(([stock, label]) => (
+            <span key={stock} className="flex items-center gap-1 text-muted">
+              <span className={`size-2.5 rounded-sm ${stockColors[stock as StockStatus]}`} /> {label}
+            </span>
+          ))}
         </figcaption>
         <div className="flex h-6 gap-0.5">
           {segments.map((segment) => (
             <div
               key={segment.start}
-              title={`${segment.inStock ? "In stock" : "Out of stock"}: ${formatDate(segment.start)} – ${formatDate(segment.end)}`}
+              title={`${stockLabels[segment.stock]}: ${formatDate(segment.start)} – ${formatDate(segment.end)}`}
               style={{ flexGrow: segment.end - segment.start }}
-              className={`min-w-0.5 basis-0 rounded-sm ${segment.inStock ? "bg-good" : "bg-critical"}`}
+              className={`min-w-0.5 basis-0 rounded-sm ${stockColors[segment.stock]}`}
             />
           ))}
         </div>

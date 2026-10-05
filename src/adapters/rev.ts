@@ -22,7 +22,7 @@ export async function fetchRev(feedUrl: string): Promise<CatalogVariant[]> {
     sku: item.sku,
     priceCents: toCents(item.price),
     compareAtCents: null,
-    available: item.availability_status === "Available",
+    stock: item.availability_status === "Available" ? "in_stock" : "out_of_stock",
     imageUrl: item.image_url,
   }));
 }

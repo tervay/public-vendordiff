@@ -1,4 +1,4 @@
-import type { EventType } from "@/db/schema";
+import type { EventType, StockStatus } from "@/db/schema";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const dateTime = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" });
@@ -12,8 +12,15 @@ export const eventLabels: Record<EventType, string> = {
   new: "New",
   restock: "Restocked",
   out_of_stock: "Out of stock",
+  backorder: "Backordered",
   price_change: "Price change",
   removed: "Removed",
+};
+
+export const stockLabels: Record<StockStatus, string> = {
+  in_stock: "In stock",
+  backorder: "Backordered",
+  out_of_stock: "Out of stock",
 };
 
 export const isEventType = (value: unknown): value is EventType => typeof value === "string" && Object.hasOwn(eventLabels, value);

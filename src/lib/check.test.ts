@@ -18,7 +18,7 @@ const item = (id: string, overrides: Partial<CatalogVariant> = {}): CatalogVaria
   sku: `SKU-${id}`,
   priceCents: 1000,
   compareAtCents: null,
-  available: true,
+  stock: "in_stock",
   imageUrl: null,
   ...overrides,
 });
@@ -55,14 +55,25 @@ describe("checkVendor", () => {
   });
 
   it("records stock and price changes as separate events", async () => {
-    await run([item("a"), item("b", { available: false }), item("c", { available: false }), item("d")]);
-    await run([item("a", { available: false }), item("b"), item("c", { priceCents: 1200 }), item("d", { priceCents: 900 })]);
+    await run([item("a"), item("b", { stock: "out_of_stock" }), item("c", { stock: "out_of_stock" }), item("d")]);
+    await run([item("a", { stock: "out_of_stock" }), item("b"), item("c", { priceCents: 1200 }), item("d", { priceCents: 900 })]);
     expect(await latestEvents()).toEqual([
       { type: "out_of_stock", externalId: "a", oldPriceCents: null, priceCents: 1000 },
       { type: "restock", externalId: "b", oldPriceCents: null, priceCents: 1000 },
       { type: "restock", externalId: "c", oldPriceCents: null, priceCents: 1200 },
       { type: "price_change", externalId: "c", oldPriceCents: 1000, priceCents: 1200 },
       { type: "price_change", externalId: "d", oldPriceCents: 1000, priceCents: 900 },
+    ]);
+  });
+
+  it("records moves into and out of backorder", async () => {
+    await run([item("a"), item("b", { stock: "backorder" }), item("c", { stock: "backorder" }), item("d", { stock: "out_of_stock" })]);
+    await run([item("a", { stock: "backorder" }), item("b"), item("c", { stock: "out_of_stock" }), item("d", { stock: "backorder" })]);
+    expect((await latestEvents()).map(({ type, externalId }) => [externalId, type])).toEqual([
+      ["a", "backorder"],
+      ["b", "restock"],
+      ["c", "out_of_stock"],
+      ["d", "backorder"],
     ]);
   });
 

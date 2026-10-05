@@ -3,10 +3,12 @@ import { boolean, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex 
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true });
 
-export const eventType = pgEnum("event_type", ["new", "removed", "out_of_stock", "restock", "price_change"]);
+export const eventType = pgEnum("event_type", ["new", "removed", "out_of_stock", "restock", "price_change", "backorder"]);
 export const runStatus = pgEnum("run_status", ["ok", "failed", "rejected"]);
+export const stockStatus = pgEnum("stock_status", ["in_stock", "backorder", "out_of_stock"]);
 
 export type EventType = (typeof eventType.enumValues)[number];
+export type StockStatus = (typeof stockStatus.enumValues)[number];
 
 export const products = pgTable(
   "products",
@@ -38,7 +40,7 @@ export const variants = pgTable(
     title: text("title").notNull(),
     priceCents: integer("price_cents").notNull(),
     compareAtCents: integer("compare_at_cents"),
-    available: boolean("available").notNull(),
+    stock: stockStatus("stock").notNull(),
     firstSeenAt: timestamptz("first_seen_at").notNull().defaultNow(),
     missingCount: integer("missing_count").notNull().default(0),
     removedAt: timestamptz("removed_at"),
@@ -75,7 +77,7 @@ export const events = pgTable(
     type: eventType("type").notNull(),
     oldPriceCents: integer("old_price_cents"),
     priceCents: integer("price_cents").notNull(),
-    available: boolean("available").notNull(),
+    stock: stockStatus("stock").notNull(),
     occurredAt: timestamptz("occurred_at").notNull().defaultNow(),
   },
   (t) => [

@@ -11,15 +11,18 @@ const retryDelayMs = (res: Response | null, attempt: number) => {
   return Math.min(delay, MAX_RETRY_DELAY_MS);
 };
 
-export async function fetchJson<T>(url: string): Promise<T> {
+export async function fetchJson<T>(url: string, body?: unknown): Promise<T> {
+  const method = body === undefined ? "GET" : "POST";
   for (let attempt = 1; ; attempt++) {
     const res = await fetch(url, {
-      headers: { "user-agent": USER_AGENT, accept: "application/json" },
+      method,
+      headers: { "user-agent": USER_AGENT, accept: "application/json", "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(30_000),
     }).catch(() => null);
     if (res?.ok) return (await res.json()) as T;
     if (attempt === MAX_ATTEMPTS || (res && !RETRYABLE_STATUSES.has(res.status))) {
-      throw new Error(`GET ${url} failed: ${res?.status ?? "network error"}`);
+      throw new Error(`${method} ${url} failed: ${res?.status ?? "network error"}`);
     }
     await sleep(retryDelayMs(res, attempt));
   }
