@@ -3,7 +3,7 @@ import { boolean, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex 
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true });
 
-export const eventType = pgEnum("event_type", ["new", "removed", "out_of_stock", "restock", "price_change", "backorder"]);
+export const eventType = pgEnum("event_type", ["new", "removed", "out_of_stock", "restock", "price_change", "backorder", "rename"]);
 export const runStatus = pgEnum("run_status", ["ok", "failed", "rejected"]);
 export const stockStatus = pgEnum("stock_status", ["in_stock", "backorder", "out_of_stock"]);
 
@@ -24,7 +24,6 @@ export const products = pgTable(
   },
   (t) => [
     uniqueIndex("products_vendor_external_idx").on(t.vendorSlug, t.externalId),
-    index("products_vendor_handle_idx").on(t.vendorSlug, t.handle),
     index("products_title_trgm_idx").using("gin", sql`${t.title} gin_trgm_ops`),
   ],
 );
@@ -76,6 +75,7 @@ export const events = pgTable(
     runId: integer("run_id").notNull().references(() => runs.id),
     type: eventType("type").notNull(),
     oldPriceCents: integer("old_price_cents"),
+    oldTitle: text("old_title"),
     priceCents: integer("price_cents").notNull(),
     stock: stockStatus("stock").notNull(),
     occurredAt: timestamptz("occurred_at").notNull().defaultNow(),

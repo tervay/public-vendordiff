@@ -15,6 +15,7 @@ export const eventLabels: Record<EventType, string> = {
   backorder: "Backordered",
   price_change: "Price change",
   removed: "Removed",
+  rename: "Renamed",
 };
 
 export const stockLabels: Record<StockStatus, string> = {

@@ -52,10 +52,10 @@ async function SearchView({ searchParams }: Pick<PageProps<"/search">, "searchPa
       ) : (
         <ul className="divide-y divide-hairline">
           {results.slice(0, SEARCH_PAGE_SIZE).map((product) => (
-            <li key={`${product.vendorSlug}/${product.handle}`} className="flex items-center gap-3 py-3">
+            <li key={product.productId} className="flex items-center gap-3 py-3">
               <Thumbnail src={product.imageUrl} />
               <div className="min-w-0 flex-1">
-                <Link href={`/v/${product.vendorSlug}/${product.handle}`} prefetch={false} className="block truncate font-medium hover:underline">
+                <Link href={`/v/${product.vendorSlug}/${product.productId}-${product.handle}`} prefetch={false} className="block truncate font-medium hover:underline">
                   {product.title}
                 </Link>
                 <div className="text-sm text-muted">{vendorBySlug(product.vendorSlug)?.name}</div>

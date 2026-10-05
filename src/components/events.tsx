@@ -11,6 +11,7 @@ const badgeStyles: Record<EventType, string> = {
   backorder: "bg-orange-100 text-orange-900 dark:bg-orange-950 dark:text-orange-200",
   price_change: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
   removed: "bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200",
+  rename: "bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-200",
 };
 
 export const chipClass = (active: boolean) =>
@@ -47,7 +48,7 @@ export function EventRow({ event, showVendor }: { event: FeedEvent; showVendor: 
     <li className="flex items-center gap-3 py-3">
       <Thumbnail src={event.imageUrl} />
       <div className="min-w-0 flex-1">
-        <Link href={`/v/${event.vendorSlug}/${event.handle}`} prefetch={false} className="block truncate font-medium hover:underline">
+        <Link href={`/v/${event.vendorSlug}/${event.productId}-${event.handle}`} prefetch={false} className="block truncate font-medium hover:underline">
           {variantName(event.productTitle, event.variantTitle)}
         </Link>
         <div className="truncate text-sm text-muted">

@@ -3,6 +3,7 @@ import type { PgColumn } from "drizzle-orm/pg-core";
 import { fetchCatalog, type CatalogVariant } from "@/adapters";
 import { db } from "@/db";
 import { events, products, runs, variants, type EventType, type StockStatus } from "@/db/schema";
+import { variantName } from "@/lib/format";
 import type { Vendor } from "@/vendors";
 
 const BATCH_SIZE = 1000;
@@ -66,7 +67,7 @@ async function recordRun(vendorSlug: string, startedAt: Date, result: RunResult)
 
 function applyCatalog(vendorSlug: string, catalog: CatalogVariant[], baseline: boolean, startedAt: Date) {
   return db.transaction(async (tx): Promise<RunResult> => {
-    const { productIds, changedProducts } = await syncProducts(tx, vendorSlug, catalog);
+    const { productIds, productTitles, changedProducts } = await syncProducts(tx, vendorSlug, catalog);
     const stored = await tx
       .select({
         id: variants.id,
@@ -82,7 +83,7 @@ function applyCatalog(vendorSlug: string, catalog: CatalogVariant[], baseline: b
       })
       .from(variants)
       .where(eq(variants.vendorSlug, vendorSlug));
-    const diff = diffVariants(vendorSlug, catalog, new Map(stored.map((v) => [v.externalId, v])), productIds);
+    const diff = diffVariants(vendorSlug, catalog, new Map(stored.map((v) => [v.externalId, v])), productIds, productTitles);
 
     const [run] = await tx
       .insert(runs)
@@ -152,6 +153,7 @@ async function syncProducts(tx: Tx, vendorSlug: string, catalog: CatalogVariant[
   });
 
   const productIds = new Map(stored.map((p) => [p.externalId, p.id]));
+  const productTitles = new Map(stored.map((p) => [p.id, p.title]));
   for (const batch of chunks(changed)) {
     const rows = await tx
       .insert(products)
@@ -163,7 +165,7 @@ async function syncProducts(tx: Tx, vendorSlug: string, catalog: CatalogVariant[
       .returning({ id: products.id, externalId: products.externalId });
     for (const row of rows) productIds.set(row.externalId, row.id);
   }
-  return { productIds, changedProducts: changed.length };
+  return { productIds, productTitles, changedProducts: changed.length };
 }
 
 function diffVariants(
@@ -171,6 +173,7 @@ function diffVariants(
   catalog: CatalogVariant[],
   stored: Map<string, StoredVariant>,
   productIds: Map<string, number>,
+  productTitles: Map<number, string>,
 ) {
   const upserts: (typeof variants.$inferInsert)[] = [];
   const pending: PendingEvent[] = [];
@@ -191,16 +194,18 @@ function diffVariants(
       missingCount: 0,
       removedAt: null,
     };
-    const record = (type: EventType, oldPriceCents: number | null = null) =>
-      pending.push({ externalVariantId: item.externalVariantId, vendorSlug, type, oldPriceCents, priceCents: item.priceCents, stock: item.stock });
+    const record = (type: EventType, fields: Pick<PendingEvent, "oldPriceCents" | "oldTitle"> = {}) =>
+      pending.push({ externalVariantId: item.externalVariantId, vendorSlug, type, priceCents: item.priceCents, stock: item.stock, ...fields });
 
     if (!old || old.removedAt) {
-      record("new", old?.priceCents ?? null);
+      record("new", { oldPriceCents: old?.priceCents ?? null });
       upserts.push(row);
       continue;
     }
+    const oldName = variantName(productTitles.get(old.productId)!, old.title);
+    if (oldName !== variantName(item.productTitle, item.variantTitle)) record("rename", { oldTitle: oldName });
     if (old.stock !== item.stock) record(stockEvents[item.stock]);
-    if (old.priceCents !== item.priceCents) record("price_change", old.priceCents);
+    if (old.priceCents !== item.priceCents) record("price_change", { oldPriceCents: old.priceCents });
     if (TRACKED_FIELDS.some((field) => old[field] !== row[field])) upserts.push(row);
   }
 

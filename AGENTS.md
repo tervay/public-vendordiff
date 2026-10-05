@@ -44,9 +44,9 @@ This is a public site at https://vendordiff.com. It checks FRC vendor catalogs e
 
 ## Data model (`src/db/schema.ts`)
 
-- **`products`**: one row per vendor product, unique on (`vendor_slug`, `external_id`). Pages look products up by (`vendor_slug`, `handle`). Holds the product's URL and image.
+- **`products`**: one row per vendor product, unique on (`vendor_slug`, `external_id`). Pages look products up by (`vendor_slug`, `id`), because vendors can change a product's handle. Holds the product's URL and image.
 - **`variants`**: the **current** state of each variant: price in cents, compare-at (sale) price, `stock` (`in_stock`, `backorder` or `out_of_stock`), `missing_count` and `removed_at`.
-- **`events`**: append-only, one row per change, with type `new`, `removed`, `out_of_stock`, `backorder`, `restock` or `price_change`. Each row records the price and stock **after** the change, and `old_price_cents` for price changes. The feeds and the product history charts are both built from this table.
+- **`events`**: append-only, one row per change, with type `new`, `removed`, `out_of_stock`, `backorder`, `restock`, `price_change` or `rename`. Each row records the price and stock **after** the change, `old_price_cents` for price changes and `old_title` for renames. The feeds and the product history charts are both built from this table.
   - Webhooks are planned for later. A webhook sender can read new events in `id` order.
 - **`runs`**: one row per vendor check, with status `ok`, `failed` or `rejected`, a `baseline` flag, and variant and event counts. Rows are kept forever because events reference them.
 
@@ -59,6 +59,7 @@ This is a public site at https://vendordiff.com. It checks FRC vendor catalogs e
 3. **Apply the changes in one transaction:**
    - Insert or update **only products and variants that changed**. Unchanged rows are never written, which is why there is no `lastSeenAt` column.
    - **Stock and price changes are separate events**, so a variant whose stock and price both change gets two events.
+   - A `rename` event is recorded when a variant's full name ("Product — Variant") changes, so renaming a product gives one event per variant. Renames appear only on product pages, never in the feeds.
    - A stock change's event type is named after the new state: `in_stock` → `restock`, `backorder` → `backorder`, `out_of_stock` → `out_of_stock`. Going from backorder back to in stock is a `restock`.
    - A variant missing from the fetch has its `missing_count` raised by 1. When it reaches 2, the variant is marked `removed`.
    - A variant that comes back after removal gets a new `new` event.
@@ -84,7 +85,7 @@ Every query in `src/lib/queries.ts` uses `"use cache: remote"` (Vercel's shared 
 |---|---|---|
 | `/` | Static, from the CDN | Vendor status cards and the latest 100 events. Filter chips work in the browser. |
 | `/v/[vendor]` | Static; `generateStaticParams` lists every vendor | Vendor status, a search box and the latest 100 events |
-| `/v/[vendor]/[handle]` | Built on first visit, then cached | Variant table, price step chart and stock timeline for the selected variant, plus its full list of changes |
+| `/v/[vendor]/[product]` | Built on first visit, then cached | Variant table, price step chart and stock timeline for the selected variant, plus its full list of changes. `[product]` is `<id>-<handle>`; only the ID is used, so links survive renames. |
 | `/history` | Rendered per request | `?vendor=&type=&before=`. Filters run in the database, with keyset pagination on event `id`. |
 | `/search` | Rendered per request | `?vendor=&q=&page=`. Matches product titles or SKUs using `ILIKE`, sped up by `pg_trgm` indexes. 50 results per page. |
 

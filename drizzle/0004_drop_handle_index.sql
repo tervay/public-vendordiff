@@ -1,0 +1,1 @@
+DROP INDEX "products_vendor_handle_idx";

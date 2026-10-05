@@ -88,9 +88,9 @@ export function ProductHistory({ variants, history, asOf }: Omit<ProductData, "p
         <ol className="divide-y divide-hairline text-sm">
           {variantHistory.toReversed().map((event) => (
             <li key={event.id} className="flex items-center justify-between gap-3 py-2">
-              <span className="text-muted">{formatDate(new Date(event.occurredAt))}</span>
-              <span className="flex items-center gap-3 tabular-nums">
-                <PriceText {...event} />
+              <span className="shrink-0 text-muted">{formatDate(new Date(event.occurredAt))}</span>
+              <span className="flex min-w-0 items-center gap-3 tabular-nums">
+                {event.type === "rename" ? <span className="truncate text-muted">was {event.oldTitle}</span> : <PriceText {...event} />}
                 <EventBadge type={event.type} />
               </span>
             </li>

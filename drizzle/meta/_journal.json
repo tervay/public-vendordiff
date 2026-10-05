@@ -29,6 +29,20 @@
       "when": 1791216906128,
       "tag": "0003_drop_available",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791217827240,
+      "tag": "0004_drop_handle_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791217950167,
+      "tag": "0005_rename_events",
+      "breakpoints": true
     }
   ]
 }

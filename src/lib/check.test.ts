@@ -97,7 +97,25 @@ describe("checkVendor", () => {
 
   it("updates product details without creating events", async () => {
     await run(baseline);
-    expect(await run([item("a", { productTitle: "Renamed" }), item("b"), item("c")])).toMatchObject({ eventCount: 0, dirty: true });
+    expect(await run([item("a", { imageUrl: "https://example.com/a.png" }), item("b"), item("c")])).toMatchObject({ eventCount: 0, dirty: true });
+    const [a] = await db.select().from(products).where(eq(products.externalId, "p-a"));
+    expect(a.imageUrl).toBe("https://example.com/a.png");
+  });
+
+  it("records product and variant renames with the old name", async () => {
+    await run([item("a"), item("b", { externalProductId: "p-a", productTitle: "Product a", variantTitle: "Red" }), item("c", { variantTitle: "Small" })]);
+    await run([item("a", { productTitle: "Renamed" }), item("b", { externalProductId: "p-a", productTitle: "Renamed", variantTitle: "Red" }), item("c", { variantTitle: "Large" })]);
+    const renames = await db
+      .select({ externalId: variants.externalId, oldTitle: events.oldTitle })
+      .from(events)
+      .innerJoin(variants, eq(variants.id, events.variantId))
+      .where(eq(events.type, "rename"))
+      .orderBy(events.id);
+    expect(renames).toEqual([
+      { externalId: "a", oldTitle: "Product a" },
+      { externalId: "b", oldTitle: "Product a — Red" },
+      { externalId: "c", oldTitle: "Product c — Small" },
+    ]);
     const [a] = await db.select().from(products).where(eq(products.externalId, "p-a"));
     expect(a.title).toBe("Renamed");
   });

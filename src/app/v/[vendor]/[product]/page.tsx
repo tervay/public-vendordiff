@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/format";
 import { getProduct } from "@/lib/queries";
 import { vendorBySlug } from "@/vendors";
 
-export default function ProductPage({ params }: PageProps<"/v/[vendor]/[handle]">) {
+export default function ProductPage({ params }: PageProps<"/v/[vendor]/[product]">) {
   return (
     <Suspense fallback={<p className="text-muted">Loading…</p>}>
       <ProductView params={params} />
@@ -15,10 +15,11 @@ export default function ProductPage({ params }: PageProps<"/v/[vendor]/[handle]"
   );
 }
 
-async function ProductView({ params }: Pick<PageProps<"/v/[vendor]/[handle]">, "params">) {
-  const { vendor: slug, handle } = await params;
+async function ProductView({ params }: Pick<PageProps<"/v/[vendor]/[product]">, "params">) {
+  const { vendor: slug, product: param } = await params;
   const vendor = vendorBySlug(slug);
-  const data = vendor && (await getProduct(vendor.slug, handle));
+  const id = param.match(/^(\d{1,9})(-|$)/)?.[1];
+  const data = vendor && id && (await getProduct(vendor.slug, Number(id)));
   if (!vendor || !data) notFound();
   const { product, ...history } = data;
 

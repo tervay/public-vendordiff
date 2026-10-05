@@ -1,4 +1,4 @@
-import { and, desc, eq, exists, ilike, lt, min, or, sql } from "drizzle-orm";
+import { and, desc, eq, exists, ilike, lt, min, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
@@ -34,6 +34,7 @@ export async function getEvents({ vendor, type, before }: { vendor?: string; typ
       variantTitle: variants.title,
       sku: variants.sku,
       productTitle: products.title,
+      productId: products.id,
       handle: products.handle,
       imageUrl: products.imageUrl,
     })
@@ -44,6 +45,7 @@ export async function getEvents({ vendor, type, before }: { vendor?: string; typ
     .where(
       and(
         eq(runs.baseline, false),
+        ne(events.type, "rename"),
         vendor ? eq(events.vendorSlug, vendor) : undefined,
         type ? eq(events.type, type) : undefined,
         before ? lt(events.id, before) : undefined,
@@ -55,16 +57,14 @@ export async function getEvents({ vendor, type, before }: { vendor?: string; typ
 
 export type FeedEvent = Awaited<ReturnType<typeof getEvents>>[number];
 
-export async function getProduct(vendor: string, handle: string) {
+export async function getProduct(vendor: string, id: number) {
   "use cache: remote";
   cacheLife("days");
   cacheTag(scopeTag(vendor));
   const [product] = await db
     .select()
     .from(products)
-    .where(and(eq(products.vendorSlug, vendor), eq(products.handle, handle)))
-    .orderBy(desc(products.id))
-    .limit(1);
+    .where(and(eq(products.vendorSlug, vendor), eq(products.id, id)));
   if (!product) return null;
 
   const [productVariants, history] = await Promise.all([
@@ -88,6 +88,7 @@ export async function getProduct(vendor: string, handle: string) {
         type: events.type,
         occurredAt: events.occurredAt,
         oldPriceCents: events.oldPriceCents,
+        oldTitle: events.oldTitle,
         priceCents: events.priceCents,
         stock: events.stock,
       })
@@ -110,6 +111,7 @@ export async function searchProducts(vendor: string | undefined, query: string, 
   return db
     .select({
       vendorSlug: products.vendorSlug,
+      productId: products.id,
       handle: products.handle,
       title: products.title,
       imageUrl: products.imageUrl,
