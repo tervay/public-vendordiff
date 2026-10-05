@@ -9,16 +9,18 @@ You need Docker and Node 24.
 ```bash
 npm install
 npm run db:up
-npm run db:migrate
+POSTGRES_URL_NON_POOLING=postgres://postgres:postgres@localhost:54329/postgres npm run db:migrate
 npm run dev
 ```
 
-`.env.local` must define:
+`vercel env pull` writes the production Supabase credentials to `.env.local`. To keep `next dev` on the local database, create `.env.development.local`, which takes priority during development:
 
 ```
 POSTGRES_URL=postgres://postgres:postgres@localhost:54329/postgres
 CRON_SECRET=dev-secret
 ```
+
+`npm run db:migrate` does not read `.env.development.local`. It always targets the database in `.env.local`.
 
 To run a check by hand:
 
