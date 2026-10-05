@@ -33,6 +33,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/history" className="text-sm text-muted hover:text-foreground">
               History
             </Link>
+            <a
+              href="https://www.chiefdelphi.com/u/jtrv"
+              target="_blank"
+              rel="noopener"
+              className="ml-auto text-sm text-muted hover:text-foreground"
+            >
+              by Justin
+            </a>
           </nav>
         </header>
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">{children}</main>
