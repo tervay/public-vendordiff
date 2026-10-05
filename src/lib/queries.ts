@@ -73,6 +73,7 @@ export async function getProduct(vendor: string, id: number) {
     db
       .select({
         id: variants.id,
+        externalId: variants.externalId,
         title: variants.title,
         sku: variants.sku,
         priceCents: variants.priceCents,

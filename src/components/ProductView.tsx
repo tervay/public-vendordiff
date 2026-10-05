@@ -19,6 +19,7 @@ export async function ProductView({ params }: { params: Promise<{ vendor: string
   const variant = variantParam === undefined ? undefined : variants.find((v) => v.id === Number(paramId(variantParam)));
   if (variantParam !== undefined && !variant) notFound();
   const shown = variant ?? variants[0];
+  const vendorUrl = variant && vendor.platform === "shopify" ? `${product.url}?variant=${variant.externalId}` : product.url;
 
   return (
     <div className="space-y-8">
@@ -38,7 +39,11 @@ export async function ProductView({ params }: { params: Promise<{ vendor: string
               </>
             )}
           </p>
-          <h1 className="text-2xl font-semibold">{variant?.title || product.title}</h1>
+          <h1 className="text-2xl font-semibold">
+            <a href={vendorUrl} target="_blank" rel="noreferrer" className="hover:underline">
+              {variant?.title || product.title} ↗
+            </a>
+          </h1>
           {variant && (
             <p className="flex flex-wrap items-center gap-x-3 text-sm tabular-nums">
               {variant.sku && <span className="text-muted">{variant.sku}</span>}
@@ -48,12 +53,7 @@ export async function ProductView({ params }: { params: Promise<{ vendor: string
               <StockLabel variant={variant} />
             </p>
           )}
-          <p className="text-sm text-muted">
-            First seen {formatDate(product.firstSeenAt)} ·{" "}
-            <a href={product.url} target="_blank" rel="noreferrer" className="hover:underline">
-              View on {vendor.name}
-            </a>
-          </p>
+          <p className="text-sm text-muted">First seen {formatDate(product.firstSeenAt)}</p>
         </div>
       </header>
       {shown ? (
