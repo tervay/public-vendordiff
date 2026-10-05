@@ -24,7 +24,7 @@
   --color-good: var(--status-good);
   --color-critical: var(--status-critical);
   --color-warning: var(--status-warning);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-geist-mono);
 }
 
