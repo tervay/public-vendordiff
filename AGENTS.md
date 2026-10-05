@@ -31,10 +31,11 @@ This is a public site at https://vendordiff.com. It checks FRC vendor catalogs e
 
 - The vendor list lives only in code (`src/vendors.ts`). There is no vendors table.
 - **Shopify** (`src/adapters/shopify.ts`): fetches `{url}/products.json?limit=250&page=N` until a page comes back empty, waiting 0.5s between pages.
+  - A vendor can list Shopify `vendor` values to skip in `ignoredShopifyVendors`. WCP sets `["N/A"]`, because those are hub pages (for example "10DP Gears" or "LimeLight Vision Camera") with no SKU and a placeholder price. The real products are listed separately. Don't skip empty SKUs in general: SDS and Armabot have no SKUs at all.
 - **REV** (`src/adapters/rev.ts`): one flat JSON feed with no IDs, so the SKU serves as both the product ID and the variant ID.
 - `src/adapters/http.ts` retries on 429 and 5xx responses, honoring `Retry-After` up to 30 seconds.
 - `fetchCatalog` drops items with invalid prices and **removes duplicate variant IDs**. AndyMark lists some variants under more than one product, so one product in such a pair can end up with no variants.
-- Catalog sizes as of October 2026: AndyMark about 5,400 variants, WCP about 2,100, all vendors together about 10,700.
+- Catalog sizes as of October 2026: AndyMark about 5,400 variants, WCP about 1,950, all vendors together about 10,500.
 
 ## Data model (`src/db/schema.ts`)
 

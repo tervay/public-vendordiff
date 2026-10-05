@@ -14,6 +14,7 @@ type ShopifyProduct = {
   id: number;
   title: string;
   handle: string;
+  vendor: string;
   images: { src: string }[];
   variants: ShopifyVariant[];
 };
@@ -22,14 +23,18 @@ const PAGE_SIZE = 250;
 const MAX_PAGES = 100;
 const PAGE_DELAY_MS = 500;
 
-export async function fetchShopify(baseUrl: string): Promise<CatalogVariant[]> {
+export async function fetchShopify(baseUrl: string, ignoredVendors: string[] = []): Promise<CatalogVariant[]> {
   const catalog: CatalogVariant[] = [];
   for (let page = 1; page <= MAX_PAGES; page++) {
     const { products } = await fetchJson<{ products: ShopifyProduct[] }>(
       `${baseUrl}/products.json?limit=${PAGE_SIZE}&page=${page}`,
     );
     if (products.length === 0) return catalog;
-    catalog.push(...products.flatMap((product) => product.variants.map((variant) => toCatalogVariant(baseUrl, product, variant))));
+    catalog.push(
+      ...products
+        .filter((product) => !ignoredVendors.includes(product.vendor))
+        .flatMap((product) => product.variants.map((variant) => toCatalogVariant(baseUrl, product, variant))),
+    );
     await sleep(PAGE_DELAY_MS);
   }
   throw new Error(`${baseUrl} returned more than ${MAX_PAGES} pages`);

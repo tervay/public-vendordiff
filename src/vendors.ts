@@ -3,6 +3,7 @@ export type Vendor = {
   name: string;
   platform: "shopify" | "rev";
   url: string;
+  ignoredShopifyVendors?: string[];
 };
 
 export const vendors: Vendor[] = [
@@ -15,7 +16,7 @@ export const vendors: Vendor[] = [
   { slug: "sds", name: "Swerve Drive Specialties", platform: "shopify", url: "https://www.swervedrivespecialties.com" },
   { slug: "swyft", name: "Swyft Robotics", platform: "shopify", url: "https://shop.swyftrobotics.com" },
   { slug: "thriftybot", name: "The Thrifty Bot", platform: "shopify", url: "https://thethriftybot.com" },
-  { slug: "wcp", name: "WCP", platform: "shopify", url: "https://wcproducts.com" },
+  { slug: "wcp", name: "WCP", platform: "shopify", url: "https://wcproducts.com", ignoredShopifyVendors: ["N/A"] },
 ];
 
 export const vendorBySlug = (slug: string) => vendors.find((v) => v.slug === slug);
