@@ -1,0 +1,50 @@
+# FRC Vendor Tracker
+
+A public site that tracks stock and price changes across FRC vendors. Each vendor is checked six times a day by Vercel Cron, and only changes are stored in Postgres.
+
+## Local development
+
+You need Docker and Node 24.
+
+```bash
+npm install
+npm run db:up
+npm run db:migrate
+npm run dev
+```
+
+`.env.local` must define:
+
+```
+POSTGRES_URL=postgres://postgres:postgres@localhost:54329/postgres
+CRON_SECRET=dev-secret
+```
+
+To run a check by hand:
+
+```bash
+curl -H "Authorization: Bearer dev-secret" localhost:3000/api/cron/check/andymark
+```
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `npm test` | Runs the check tests against the `vendordiff_test` database in the same container |
+| `npm run fetch-catalogs` | Fetches every vendor and prints product and variant counts, without touching the database |
+| `npm run db:generate` | Creates a migration after you change `src/db/schema.ts` |
+| `npm run db:migrate` | Applies migrations to the database in `POSTGRES_URL_NON_POOLING`, or `POSTGRES_URL` if that is unset |
+
+## Deploying
+
+1. Create a Vercel project from this repository on the Hobby plan.
+2. Add Supabase from the Vercel Marketplace. This sets `POSTGRES_URL` (the transaction pooler) and `POSTGRES_URL_NON_POOLING`.
+3. Add a `CRON_SECRET` environment variable with a long random value. Vercel Cron sends it automatically.
+4. Run `vercel env pull .env.local`, then `npm run db:migrate`. This creates the `pg_trgm` extension and the tables.
+5. Deploy. `vercel.ts` registers 60 cron jobs: 10 vendors × 6 times a day.
+
+The first successful run for each vendor is a baseline. It records every variant but stays out of the feeds.
+
+## Adding a vendor
+
+Add an entry to `src/vendors.ts`. Shopify stores need only their base URL. Another platform needs a new adapter in `src/adapters/` that returns `CatalogVariant[]`.
