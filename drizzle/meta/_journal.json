@@ -43,6 +43,13 @@
       "when": 1791217950167,
       "tag": "0005_rename_events",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791241725245,
+      "tag": "0006_auth",
+      "breakpoints": true
     }
   ]
 }

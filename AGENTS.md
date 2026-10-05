@@ -89,12 +89,26 @@ Every query in `src/lib/queries.ts` uses `"use cache: remote"` (Vercel's shared 
 | `/v/[vendor]/[product]/[variant]` | Built on first visit, then cached | One variant's current price and stock, price step chart, stock timeline and changes, without the other variants. `[variant]` is the variant's ID. Feed links and the variant table link here. |
 | `/history` | Rendered per request | `?vendor=&type=&before=`. Filters run in the database, with keyset pagination on event `id`. |
 | `/search` | Rendered per request | `?vendor=&q=&page=`. Matches product titles or SKUs using `ILIKE`, sped up by `pg_trgm` indexes. 50 results per page. |
+| `/account` | Rendered per request | The signed-in user's Google picture, name and email, and a "Sign out" button. Sends signed-out visitors to `/`. |
+
+Every page's shell is static, but the navbar's account slot is rendered per request (see Auth).
 
 Conventions:
 - Keep `searchParams` off the high-traffic pages. Filtering on `/` and `/v/[vendor]` happens in the browser so those pages stay static.
 - Links in feeds use `prefetch={false}`, so links scrolling into view don't trigger page builds.
 - Dates are shown in America/New_York time and formatted on the server. Product images load straight from vendor CDNs with a plain `<img>`, which avoids Vercel image-optimization quotas.
 - Vendor icons are copied from each vendor's site into `public/vendors/` and referenced by `Vendor.icon`. They are served as static files and shown in the feeds' `VendorBadge`.
+
+## Auth
+
+- **Better Auth** (`src/lib/auth.ts`) with the Drizzle adapter. Google is the only sign-in method.
+- Tables: `users`, `sessions`, `accounts` and `verifications`. They use Better Auth's text IDs. Row-level security is on with no policies, so Supabase's Data API can't read session or OAuth tokens. The app connects as the table owner, so RLS doesn't apply to it.
+- `src/app/api/auth/[...all]/route.ts` serves Better Auth's endpoints, including Google's callback at `/api/auth/callback/google`.
+- `src/lib/auth-actions.ts` holds the `signIn` and `signOut` server actions.
+- `AccountNav` reads the session on the server inside a `<Suspense>` boundary in the root layout. **Every full page load is therefore a function call**, even though the page shell comes from the CDN. Client-side navigation keeps the layout, so it doesn't re-render the slot.
+- `cookieCache` (5 minutes) means a signed-in visitor reads the database at most once every 5 minutes. Visitors with no session cookie never touch the database.
+- Environment variables: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Better Auth throws without a secret, which would break the navbar on every page.
+- The Google OAuth client allows only `https://vendordiff.com` and `http://localhost:3000` redirect URIs, so **sign-in doesn't work on preview deployments**.
 
 ## Environments
 

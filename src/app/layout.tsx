@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { DM_Sans, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { Suspense } from "react";
+import { AccountNav } from "@/components/AccountNav";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -33,19 +35,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/history" className="text-sm text-muted hover:text-foreground">
               History
             </Link>
-            <a
-              href="https://www.chiefdelphi.com/u/jtrv"
-              target="_blank"
-              rel="noopener"
-              className="ml-auto text-sm text-muted hover:text-foreground"
-            >
-              by Justin
-            </a>
+            <div className="ml-auto flex items-center gap-4">
+              <Suspense fallback={null}>
+                <AccountNav />
+              </Suspense>
+            </div>
           </nav>
         </header>
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">{children}</main>
-        <footer className="mx-auto w-full max-w-4xl px-4 py-6 text-xs text-subtle">
-          Vendor sites are checked every hour. Not affiliated with any vendor.
+        <footer className="mx-auto flex w-full max-w-4xl justify-between gap-4 px-4 py-6 text-xs text-subtle">
+          <span>Vendor sites are checked every hour. Not affiliated with any vendor.</span>
+          <a href="https://www.chiefdelphi.com/u/jtrv" target="_blank" rel="noopener" className="hover:text-foreground">
+            by Justin
+          </a>
         </footer>
       </body>
     </html>
