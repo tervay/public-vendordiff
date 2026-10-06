@@ -75,6 +75,32 @@ describe("plaintext", () => {
   });
 });
 
+describe("json v1", () => {
+  it("builds a versioned body with nested snake_case fields", () => {
+    expect(JSON.parse(formatters.json.event(event({ sku: null, imageUrl: null })))).toEqual({
+      version: 1,
+      events: [
+        {
+          id: 1,
+          type: "price_change",
+          occurred_at: "2026-10-05T16:00:00.000Z",
+          url: "https://vendordiff.com/v/wcp/3-gear/7",
+          vendor: { slug: "wcp", name: "WCP" },
+          product: { id: 3, title: "Gear <b> & Co", image_url: null },
+          variant: { id: 7, title: "12T", sku: null },
+          price_cents: 1200,
+          old_price_cents: 1000,
+          old_title: null,
+        },
+      ],
+    });
+  });
+
+  it("sends plain messages with no events", () => {
+    expect(JSON.parse(formatters.json.text("hello"))).toEqual({ version: 1, events: [], message: "hello" });
+  });
+});
+
 describe("group", () => {
   const longEvents = Array.from({ length: 40 }, (_, i) =>
     event({ id: i, variantId: i, productTitle: "X".repeat(500), variantTitle: "Y".repeat(500), handle: "h".repeat(200) }),
@@ -115,6 +141,9 @@ describe("parseWebhookUrl", () => {
     ["plaintext", "https://169.254.169.254/latest", false],
     ["plaintext", "https://[::1]/hook", false],
     ["plaintext", "not a url", false],
+    ["json", "https://example.com/hook", true],
+    ["json", "http://example.com/hook", false],
+    ["json", "https://127.0.0.1/hook", false],
   ] as const)("%s %s → %s", (type, url, valid) => {
     expect(parseWebhookUrl(type, url) !== null).toBe(valid);
   });

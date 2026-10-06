@@ -6,7 +6,7 @@ const timestamptz = (name: string) => timestamp(name, { withTimezone: true });
 export const eventType = pgEnum("event_type", ["new", "removed", "out_of_stock", "restock", "price_change", "backorder", "rename"]);
 export const runStatus = pgEnum("run_status", ["ok", "failed", "rejected"]);
 export const stockStatus = pgEnum("stock_status", ["in_stock", "backorder", "out_of_stock"]);
-export const webhookType = pgEnum("webhook_type", ["slack", "discord", "plaintext"]);
+export const webhookType = pgEnum("webhook_type", ["slack", "discord", "plaintext", "json"]);
 
 export type EventType = (typeof eventType.enumValues)[number];
 export type StockStatus = (typeof stockStatus.enumValues)[number];
@@ -166,6 +166,7 @@ export const webhooks = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     type: webhookType("type").notNull(),
     url: text("url").notNull(),
+    jsonVersion: integer("json_version"),
     vendorSlugs: text("vendor_slugs").array().notNull(),
     eventTypes: eventType("event_types").array().notNull(),
     enabled: boolean("enabled").notNull().default(true),

@@ -3,7 +3,7 @@ import { sleep } from "@/adapters/http";
 import { db } from "@/db";
 import { events, products, runs, variants, webhooks } from "@/db/schema";
 import { feedColumns, type FeedEvent } from "@/lib/queries";
-import { formatters, postWebhook, type Formatter } from ".";
+import { formatterFor, postWebhook, type Formatter } from ".";
 import { SITE_URL } from "./message";
 
 const MAX_POSTS = 20;
@@ -46,6 +46,14 @@ export async function deliverWebhooks({ pauseMs = 1000 } = {}) {
 }
 
 function buildMessages(formatter: Formatter, events: FeedEvent[]) {
+  const { batchSize } = formatter;
+  if (batchSize) {
+    return Array.from({ length: Math.ceil(events.length / batchSize) }, (_, i) => events.slice(i * batchSize, (i + 1) * batchSize)).map((batch) => ({
+      firstId: batch[0].id,
+      count: batch.length,
+      body: formatter.group(batch),
+    }));
+  }
   const messages = [...Map.groupBy(events, (event) => event.vendorSlug).values()].flatMap((group) =>
     group.length >= GROUP_MIN
       ? [{ firstId: group[0].id, count: group.length, body: formatter.group(group) }]
@@ -59,12 +67,13 @@ async function deliver(webhook: Webhook, pending: FeedEvent[], pauseMs: number, 
   if (newer.length === 0) return { sent: 0, error: null };
   const lastId = newer.at(-1)!.id;
   const matching = newer.filter((event) => webhook.vendorSlugs.includes(event.vendorSlug) && webhook.eventTypes.includes(event.type));
-  const all = buildMessages(formatters[webhook.type], matching);
+  const formatter = formatterFor(webhook);
+  const all = buildMessages(formatter, matching);
   const messages = all.slice(0, MAX_POSTS);
   const skipped = all.slice(MAX_POSTS);
   if (skipped.length > 0) {
     const count = skipped.reduce((total, message) => total + message.count, 0);
-    messages.push({ firstId: skipped[0].firstId, count, body: formatters[webhook.type].text(`and ${count} more changes: ${SITE_URL}/history`) });
+    messages.push({ firstId: skipped[0].firstId, count, body: formatter.text(`and ${count} more changes: ${SITE_URL}/history`) });
   }
 
   let cursor = messages.length > 0 ? messages[0].firstId - 1 : lastId;

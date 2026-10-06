@@ -28,6 +28,7 @@ export const webhookTypeLabels: Record<WebhookType, string> = {
   slack: "Slack",
   discord: "Discord",
   plaintext: "Plain text",
+  json: "JSON",
 };
 
 export const isEventType =(value: unknown): value is EventType => typeof value === "string" && Object.hasOwn(eventLabels, value);

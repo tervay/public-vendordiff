@@ -9,10 +9,11 @@ import { webhooks } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { isEventType } from "@/lib/format";
 import { vendorBySlug } from "@/vendors";
-import { formatters, isWebhookType, MAX_WEBHOOKS, parseWebhookUrl, postWebhook } from "@/webhooks";
+import { formatterFor, formatters, isWebhookType, MAX_WEBHOOKS, parseWebhookUrl, postWebhook } from "@/webhooks";
 import { latestEventId, newestEvent } from "@/webhooks/deliver";
+import { isJsonVersion } from "@/webhooks/json";
 
-export type FormValues = { type: string; url: string; vendorSlugs: string[]; eventTypes: string[] };
+export type FormValues = { type: string; url: string; jsonVersion: number | null; vendorSlugs: string[]; eventTypes: string[] };
 export type FormState = { error?: string; message?: string; values?: FormValues } | null;
 
 async function requireUserId() {
@@ -27,6 +28,7 @@ function parseForm(formData: FormData) {
   const submitted = {
     type: String(formData.get("type")),
     url: String(formData.get("url") ?? ""),
+    jsonVersion: Number(formData.get("jsonVersion")) || null,
     vendorSlugs: formData.getAll("vendors").map(String),
     eventTypes: formData.getAll("types").map(String),
   };
@@ -35,11 +37,13 @@ function parseForm(formData: FormData) {
   if (!isWebhookType(type)) return invalid("Choose a webhook type.");
   const url = parseWebhookUrl(type, submitted.url);
   if (!url) return invalid(formatters[type].urlHint);
+  const jsonVersion = type === "json" ? submitted.jsonVersion : null;
+  if (type === "json" && !(jsonVersion && isJsonVersion(jsonVersion))) return invalid("Choose a schema version.");
   const vendorSlugs = submitted.vendorSlugs.filter((slug) => vendorBySlug(slug));
   if (vendorSlugs.length === 0) return invalid("Choose at least one vendor.");
   const eventTypes = submitted.eventTypes.filter(isEventType);
   if (eventTypes.length === 0) return invalid("Choose at least one change type.");
-  return { values: { type, url, vendorSlugs, eventTypes } };
+  return { values: { type, url, jsonVersion, vendorSlugs, eventTypes } };
 }
 
 export async function createWebhook(_: FormState, formData: FormData): Promise<FormState> {
@@ -83,7 +87,7 @@ export async function testWebhook(id: number): Promise<FormState> {
   const [webhook] = await db.select().from(webhooks).where(owned(userId, id));
   if (!webhook) return { error: "Webhook not found." };
   const latest = await newestEvent();
-  const formatter = formatters[webhook.type];
+  const formatter = formatterFor(webhook);
   try {
     await postWebhook(webhook, latest ? formatter.event(latest) : formatter.text("Test message from VendorDiff."));
     return { message: "Test sent." };

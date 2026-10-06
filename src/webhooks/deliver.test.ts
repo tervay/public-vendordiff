@@ -99,6 +99,19 @@ describe("deliverWebhooks", () => {
     expect(posts.slice(1).map((post) => post.split(",")[0])).toEqual(["❌ Out of stock: other Product v0", "❌ Out of stock: other Product v1"]);
   });
 
+  it("sends every change in one JSON body", async () => {
+    await inStock(3);
+    await inStock(2, "other");
+    const webhook = await addWebhook({ type: "json", jsonVersion: 1, vendorSlugs: ["test", "other"] });
+    await outOfStock(3);
+    await outOfStock(2, "other");
+    expect(await deliver()).toEqual({ sent: 1, failed: 0 });
+    const body = JSON.parse(posts[0]);
+    expect(body.version).toBe(1);
+    expect(body.events.map((event: { vendor: { slug: string } }) => event.vendor.slug)).toEqual(["test", "test", "test", "other", "other"]);
+    expect((await stored(webhook.id)).lastEventId).toBe(await latestEventId());
+  });
+
   it("lists at most 30 changes in a group", async () => {
     await inStock(35);
     await addWebhook();

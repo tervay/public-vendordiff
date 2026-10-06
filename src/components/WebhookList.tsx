@@ -29,7 +29,11 @@ function WebhookCard({ webhook }: { webhook: Webhook }) {
     <li className="space-y-3 rounded-lg border border-hairline p-4">
       <div className="flex items-baseline justify-between gap-4">
         <p className="min-w-0 truncate">
-          <span className="font-medium">{webhookTypeLabels[webhook.type]}</span> <span className="text-sm text-muted">{shortUrl(webhook.url)}</span>
+          <span className="font-medium">
+            {webhookTypeLabels[webhook.type]}
+            {webhook.jsonVersion && ` v${webhook.jsonVersion}`}
+          </span>{" "}
+          <span className="text-sm text-muted">{shortUrl(webhook.url)}</span>
         </p>
         <WebhookStatus webhook={webhook} />
       </div>
@@ -69,7 +73,7 @@ export async function WebhookList({ userId }: { userId: string }) {
     <section className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold">Webhooks</h2>
-        <p className="text-sm text-muted">Get a message in Slack, Discord or any URL when a change you pick happens. You can have up to {MAX_WEBHOOKS}.</p>
+        <p className="text-sm text-muted">Get a message in Slack, Discord or any URL, as text or JSON, when a change you pick happens. You can have up to {MAX_WEBHOOKS}.</p>
       </div>
       {rows.length > 0 && (
         <ul className="space-y-3">
