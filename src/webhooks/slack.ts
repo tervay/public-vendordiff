@@ -1,7 +1,10 @@
+import { eventLabels } from "@/lib/format";
 import type { Formatter } from ".";
-import { eventDetail, eventLabel, eventName, eventUrl, vendorName } from "./message";
+import { eventDetail, eventEmoji, eventLabel, eventName, eventUrl, vendorName, type Markup } from "./message";
 
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const markup: Markup = { strike: (text) => `~${text}~`, bold: (text) => `*${text}*` };
 
 export const slack: Formatter = {
   contentType: "application/json",
@@ -9,17 +12,15 @@ export const slack: Formatter = {
   validUrl: (url) => url.origin === "https://hooks.slack.com" && url.pathname.startsWith("/services/"),
   event: (event) => {
     const name = escape(eventName(event));
-    const detail = escape(eventDetail(event, (price) => `~${price}~`));
-    const context = [vendorName(event), event.sku].filter(Boolean).join(" · ");
+    const heading = `${eventEmoji(event)} *${eventLabels[event.type]}* · ${escape(vendorName(event))}`;
     return JSON.stringify({
       text: `${eventLabel(event)}: ${name}`,
       blocks: [
         {
           type: "section",
-          text: { type: "mrkdwn", text: `*<${eventUrl(event)}|${name}>*\n${eventLabel(event)} · ${detail}` },
+          text: { type: "mrkdwn", text: `${heading}\n*<${eventUrl(event)}|${name}>* · ${escape(eventDetail(event, markup))}` },
           accessory: event.imageUrl ? { type: "image", image_url: event.imageUrl, alt_text: eventName(event) } : undefined,
         },
-        { type: "context", elements: [{ type: "mrkdwn", text: escape(context) }] },
       ],
     });
   },

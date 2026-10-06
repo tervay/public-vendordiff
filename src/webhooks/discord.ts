@@ -1,6 +1,6 @@
 import type { EventType } from "@/db/schema";
 import type { Formatter } from ".";
-import { eventDetail, eventLabel, eventName, eventUrl, vendorName } from "./message";
+import { eventDetail, eventLabel, eventName, eventUrl, vendorName, type Markup } from "./message";
 
 const DISCORD_HOSTS = new Set(["discord.com", "discordapp.com"]);
 
@@ -16,6 +16,8 @@ const colors: Record<EventType, number> = {
 
 const noMentions = { parse: [] };
 
+const markup: Markup = { strike: (text) => `~~${text}~~`, bold: (text) => `**${text}**` };
+
 export const discord: Formatter = {
   contentType: "application/json",
   urlHint: "Use a Discord webhook URL (https://discord.com/api/webhooks/…).",
@@ -28,7 +30,7 @@ export const discord: Formatter = {
           author: { name: vendorName(event) },
           title: eventName(event).slice(0, 256),
           url: eventUrl(event),
-          description: `${eventLabel(event)} · ${eventDetail(event, (price) => `~~${price}~~`)}`,
+          description: `${eventLabel(event)} · ${eventDetail(event, markup)}`,
           color: colors[event.type],
           thumbnail: event.imageUrl ? { url: event.imageUrl } : undefined,
           footer: event.sku ? { text: event.sku } : undefined,

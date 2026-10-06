@@ -21,18 +21,26 @@ const event = (overrides: Partial<FeedEvent> = {}): FeedEvent => ({
 });
 
 describe("slack", () => {
-  it("builds escaped Block Kit with a link and struck-through old price", () => {
+  it("builds escaped Block Kit with a link and the price change percent", () => {
     expect(JSON.parse(formatters.slack.event(event()))).toEqual({
       text: "💲 Price change: Gear &lt;b&gt; &amp; Co — 12T",
       blocks: [
         {
           type: "section",
-          text: { type: "mrkdwn", text: "*<https://vendordiff.com/v/wcp/3-gear/7|Gear &lt;b&gt; &amp; Co — 12T>*\n💲 Price change · ~$10.00~ → $12.00" },
+          text: {
+            type: "mrkdwn",
+            text: "💲 *Price change* · WCP\n*<https://vendordiff.com/v/wcp/3-gear/7|Gear &lt;b&gt; &amp; Co — 12T>* · ~$10.00~ → *$12.00* (+20%)",
+          },
           accessory: { type: "image", image_url: "https://cdn.example.com/gear.png", alt_text: "Gear <b> & Co — 12T" },
         },
-        { type: "context", elements: [{ type: "mrkdwn", text: "WCP · WCP-0001" }] },
       ],
     });
+  });
+
+  it("shows a decimal for small price changes and leaves out a missing image", () => {
+    const body = JSON.parse(formatters.slack.event(event({ oldPriceCents: 10000, priceCents: 9950, imageUrl: null })));
+    expect(body.blocks[0].text.text).toContain("~$100.00~ → *$99.50* (-0.5%)");
+    expect(body.blocks[0].accessory).toBeUndefined();
   });
 });
 
