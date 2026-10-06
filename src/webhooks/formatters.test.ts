@@ -75,6 +75,32 @@ describe("plaintext", () => {
   });
 });
 
+describe("group", () => {
+  const longEvents = Array.from({ length: 40 }, (_, i) =>
+    event({ id: i, variantId: i, productTitle: "X".repeat(500), variantTitle: "Y".repeat(500), handle: "h".repeat(200) }),
+  );
+
+  it("keeps Slack under 50 blocks and 3000 characters per section", () => {
+    const { blocks } = JSON.parse(formatters.slack.group(longEvents));
+    expect(blocks.length).toBeLessThanOrEqual(50);
+    for (const block of blocks) expect(block.text.text.length).toBeLessThanOrEqual(3000);
+    expect(blocks[0].text.text).toBe("*WCP: 40 changes*");
+    expect(blocks.at(-1).text.text).toBe("and 10 more · <https://vendordiff.com/history?vendor=wcp|see all on vendordiff>");
+  });
+
+  it("keeps Discord under 4096 characters in the description and 6000 in total", () => {
+    const [embed] = JSON.parse(formatters.discord.group(longEvents)).embeds;
+    expect(embed.description.length).toBeLessThanOrEqual(4096);
+    expect(embed.title.length + embed.description.length).toBeLessThanOrEqual(6000);
+    expect(embed.description).toMatch(/\[and \d+ more\]\(https:\/\/vendordiff\.com\/history\?vendor=wcp\)$/);
+  });
+
+  it("escapes brackets in Discord link text", () => {
+    const [embed] = JSON.parse(formatters.discord.group([event({ productTitle: "Gear [12T]", variantTitle: "" }), event()])).embeds;
+    expect(embed.description).toContain("[Gear \\[12T\\]](https://vendordiff.com/v/wcp/3-gear/7)");
+  });
+});
+
 describe("parseWebhookUrl", () => {
   it.each([
     ["slack", "https://hooks.slack.com/services/T0/B0/x", true],

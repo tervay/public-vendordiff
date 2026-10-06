@@ -1,6 +1,6 @@
 import type { EventType } from "@/db/schema";
 import type { Formatter } from ".";
-import { eventDetail, eventLabel, eventName, eventUrl, vendorName, type Markup } from "./message";
+import { eventDetail, eventLabel, eventName, eventUrl, groupTitle, packLines, vendorHistoryUrl, vendorName, type Markup } from "./message";
 
 const DISCORD_HOSTS = new Set(["discord.com", "discordapp.com"]);
 
@@ -14,7 +14,13 @@ const colors: Record<EventType, number> = {
   rename: 0x8b5cf6,
 };
 
+const DESCRIPTION_CHARS = 4096;
+const MORE_LINE_CHARS = 200;
+const GROUP_COLOR = 0x71717a;
+
 const noMentions = { parse: [] };
+
+const escapeLink = (text: string) => text.replace(/[[\]]/g, "\\$&");
 
 const markup: Markup = { strike: (text) => `~~${text}~~`, bold: (text) => `**${text}**` };
 
@@ -28,7 +34,7 @@ export const discord: Formatter = {
       embeds: [
         {
           author: { name: vendorName(event) },
-          title: eventName(event).slice(0, 256),
+          title: eventName(event),
           url: eventUrl(event),
           description: `${eventLabel(event)} · ${eventDetail(event, markup)}`,
           color: colors[event.type],
@@ -37,5 +43,14 @@ export const discord: Formatter = {
         },
       ],
     }),
+  group: (events) => {
+    const lines = events.map((event) => `${eventLabel(event)} · [${escapeLink(eventName(event))}](${eventUrl(event)}) · ${eventDetail(event, markup)}`);
+    const { chunks, hidden } = packLines(lines, DESCRIPTION_CHARS - MORE_LINE_CHARS, 1);
+    const more = hidden > 0 ? `\n[and ${hidden} more](${vendorHistoryUrl(events[0])})` : "";
+    return JSON.stringify({
+      allowed_mentions: noMentions,
+      embeds: [{ title: groupTitle(events), url: vendorHistoryUrl(events[0]), description: `${chunks[0]}${more}`, color: GROUP_COLOR }],
+    });
+  },
   text: (content) => JSON.stringify({ allowed_mentions: noMentions, content }),
 };

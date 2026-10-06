@@ -114,14 +114,16 @@ Conventions:
 
 - Users add webhooks on `/account`, up to 3 each (`MAX_WEBHOOKS`). Each webhook has a type (`slack`, `discord` or `plaintext`), a URL, a list of vendors and a list of change types. It gets every change that matches both lists.
 - **`webhooks`** table: `last_event_id` is the webhook's cursor. A new webhook starts at the current `max(events.id)`, so it never receives older changes. RLS is on with no policies, because the URLs are secrets.
-- Each type is one file in `src/webhooks/` that exports a `Formatter`: `validUrl`, `event` (the body for one change) and `text` (the body for a plain message). To add a type, add an enum value, a migration and a formatter.
+- Each type is one file in `src/webhooks/` that exports a `Formatter`: `validUrl`, `event` (the body for one change), `group` (the body for several changes at one vendor) and `text` (the body for a plain message). To add a type, add an enum value, a migration and a formatter.
   - **Slack:** Block Kit, with the product image as the section's accessory. Tested in October 2026: incoming webhooks accept a message even when its image URL is broken. URLs must be `https://hooks.slack.com/services/…`.
   - **Discord:** one embed per message, with `allowed_mentions: { parse: [] }`, so product titles can't ping anyone. URLs must be `https://discord.com/api/webhooks/…` or `https://discordapp.com/api/webhooks/…`.
   - **Plaintext:** a `text/plain` body. URLs must use `https` and a domain name; `localhost` and IP-address hosts are rejected.
 - `deliverWebhooks()` (`src/webhooks/deliver.ts`) runs at the end of every cron run:
   - It reads enabled webhooks, then every non-baseline event after the smallest cursor: 2 queries in total.
-  - Each webhook posts **one message per change**, 1 second apart, at most 20 per run. Any extra changes become one "and N more changes" message linking to `/history`.
-  - A failed post stops that webhook for the run. The cursor moves only past the last post that worked, so the rest are retried next hour. Delivery is at least once.
+  - Each webhook posts **one message per change**, 1 second apart. When one vendor has **4 or more** matching changes in a run, they go into one grouped message instead ("AndyMark: 12 changes", one line each). A group lists at most 30 changes, then "and N more" linking to `/history?vendor=`.
+  - Grouped messages are packed to fit each platform's limits: Slack allows 50 blocks per message and 3,000 characters per section; Discord allows 4,096 characters per embed description. Names are cut to 200 characters.
+  - At most 20 messages per webhook per run. Any extra changes become one "and N more changes" message linking to `/history`.
+  - A failed post stops that webhook for the run. Messages are sent in order of their first event, and the cursor moves to just before the first event of the next unsent message, so the rest are retried next hour. Delivery is at least once.
   - After 24 failed runs in a row, the webhook is turned off and keeps its `last_error`. Turning it back on moves the cursor to the newest event.
   - Posts stop starting 90 seconds after delivery begins. This keeps the cron function under 300 seconds even when endpoints are slow.
   - Requests use `fetchWithRetry` from `src/adapters/http.ts` with `redirect: "error"`. Error messages name the webhook type, never the URL.

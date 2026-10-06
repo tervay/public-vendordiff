@@ -3,10 +3,11 @@ import { sleep } from "@/adapters/http";
 import { db } from "@/db";
 import { events, products, runs, variants, webhooks } from "@/db/schema";
 import { feedColumns, type FeedEvent } from "@/lib/queries";
-import { formatters, postWebhook } from ".";
+import { formatters, postWebhook, type Formatter } from ".";
 import { SITE_URL } from "./message";
 
 const MAX_POSTS = 20;
+const GROUP_MIN = 4;
 const DISABLE_AFTER_FAILURES = 24;
 const DEADLINE_MS = 90_000;
 
@@ -44,21 +45,32 @@ export async function deliverWebhooks({ pauseMs = 1000 } = {}) {
   return { sent: results.reduce((total, result) => total + result.sent, 0), failed: results.filter((result) => result.error).length };
 }
 
+function buildMessages(formatter: Formatter, events: FeedEvent[]) {
+  const messages = [...Map.groupBy(events, (event) => event.vendorSlug).values()].flatMap((group) =>
+    group.length >= GROUP_MIN
+      ? [{ firstId: group[0].id, count: group.length, body: formatter.group(group) }]
+      : group.map((event) => ({ firstId: event.id, count: 1, body: formatter.event(event) })),
+  );
+  return messages.sort((a, b) => a.firstId - b.firstId);
+}
+
 async function deliver(webhook: Webhook, pending: FeedEvent[], pauseMs: number, deadline: number) {
   const newer = pending.filter((event) => event.id > webhook.lastEventId);
   if (newer.length === 0) return { sent: 0, error: null };
   const lastId = newer.at(-1)!.id;
   const matching = newer.filter((event) => webhook.vendorSlugs.includes(event.vendorSlug) && webhook.eventTypes.includes(event.type));
-  const formatter = formatters[webhook.type];
-  const messages = matching.slice(0, MAX_POSTS).map((event) => ({ cursor: event.id, body: formatter.event(event) }));
-  if (matching.length > MAX_POSTS) {
-    messages.push({ cursor: lastId, body: formatter.text(`and ${matching.length - MAX_POSTS} more changes: ${SITE_URL}/history`) });
+  const all = buildMessages(formatters[webhook.type], matching);
+  const messages = all.slice(0, MAX_POSTS);
+  const skipped = all.slice(MAX_POSTS);
+  if (skipped.length > 0) {
+    const count = skipped.reduce((total, message) => total + message.count, 0);
+    messages.push({ firstId: skipped[0].firstId, count, body: formatters[webhook.type].text(`and ${count} more changes: ${SITE_URL}/history`) });
   }
 
-  let cursor = webhook.lastEventId;
+  let cursor = messages.length > 0 ? messages[0].firstId - 1 : lastId;
   let sent = 0;
   let error: string | null = null;
-  for (const message of messages) {
+  for (const [i, message] of messages.entries()) {
     if (Date.now() > deadline) break;
     if (sent > 0) await sleep(pauseMs);
     try {
@@ -67,10 +79,9 @@ async function deliver(webhook: Webhook, pending: FeedEvent[], pauseMs: number, 
       error = String(e);
       break;
     }
-    cursor = message.cursor;
+    cursor = i + 1 < messages.length ? messages[i + 1].firstId - 1 : lastId;
     sent++;
   }
-  if (sent === messages.length) cursor = lastId;
 
   const failureCount = error ? webhook.failureCount + 1 : 0;
   await db

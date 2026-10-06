@@ -12,6 +12,7 @@ export type Formatter = {
   urlHint: string;
   validUrl: (url: URL) => boolean;
   event: (event: FeedEvent) => string;
+  group: (events: FeedEvent[]) => string;
   text: (text: string) => string;
 };
 
