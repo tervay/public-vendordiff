@@ -23,14 +23,14 @@ const event = (overrides: Partial<FeedEvent> = {}): FeedEvent => ({
 describe("slack", () => {
   it("builds escaped Block Kit with a link and struck-through old price", () => {
     expect(JSON.parse(formatters.slack.event(event()))).toEqual({
-      text: "Price change: Gear &lt;b&gt; &amp; Co — 12T",
+      text: "💲 Price change: Gear &lt;b&gt; &amp; Co — 12T",
       blocks: [
         {
           type: "section",
-          text: { type: "mrkdwn", text: "*<https://vendordiff.com/v/wcp/3-gear/7|Gear &lt;b&gt; &amp; Co — 12T>*\nPrice change · ~$10.00~ → $12.00" },
+          text: { type: "mrkdwn", text: "*<https://vendordiff.com/v/wcp/3-gear/7|Gear &lt;b&gt; &amp; Co — 12T>*\n💲 Price change · ~$10.00~ → $12.00" },
           accessory: { type: "image", image_url: "https://cdn.example.com/gear.png", alt_text: "Gear <b> & Co — 12T" },
         },
-        { type: "context", elements: [{ type: "mrkdwn", text: "WCP · WCP-0001 · Oct 5, 2026, 12:00 PM ET" }] },
+        { type: "context", elements: [{ type: "mrkdwn", text: "WCP · WCP-0001" }] },
       ],
     });
   });
@@ -46,10 +46,9 @@ describe("discord", () => {
           author: { name: "WCP" },
           title: "Gear <b> & Co — 12T",
           url: "https://vendordiff.com/v/wcp/3-gear/7",
-          description: "Restocked · $12.00",
+          description: "✅ Restocked · $12.00",
           color: 0x22c55e,
           thumbnail: { url: "https://cdn.example.com/gear.png" },
-          timestamp: "2026-10-05T16:00:00.000Z",
         },
       ],
     });
@@ -63,7 +62,7 @@ describe("discord", () => {
 describe("plaintext", () => {
   it("writes the old name for a rename", () => {
     expect(formatters.plaintext.event(event({ type: "rename", oldTitle: "Gear — 12 tooth" }))).toBe(
-      "Renamed: WCP Gear <b> & Co — 12T, was Gear — 12 tooth\nhttps://vendordiff.com/v/wcp/3-gear/7",
+      "✏️ Renamed: WCP Gear <b> & Co — 12T, was Gear — 12 tooth\nhttps://vendordiff.com/v/wcp/3-gear/7",
     );
   });
 });

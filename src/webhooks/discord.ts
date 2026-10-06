@@ -32,7 +32,6 @@ export const discord: Formatter = {
           color: colors[event.type],
           thumbnail: event.imageUrl ? { url: event.imageUrl } : undefined,
           footer: event.sku ? { text: event.sku } : undefined,
-          timestamp: event.occurredAt.toISOString(),
         },
       ],
     }),

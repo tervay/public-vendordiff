@@ -1,3 +1,4 @@
+import type { EventType } from "@/db/schema";
 import { eventLabels, formatPrice, variantName } from "@/lib/format";
 import type { FeedEvent } from "@/lib/queries";
 import { vendorBySlug } from "@/vendors";
@@ -8,7 +9,17 @@ export const eventUrl = (event: FeedEvent) => `${SITE_URL}/v/${event.vendorSlug}
 
 export const eventName = (event: FeedEvent) => variantName(event.productTitle, event.variantTitle);
 
-export const eventLabel = (event: FeedEvent) => eventLabels[event.type];
+const eventEmojis: Record<EventType, string> = {
+  new: "🆕",
+  restock: "✅",
+  out_of_stock: "❌",
+  backorder: "⏳",
+  price_change: "💲",
+  removed: "🗑️",
+  rename: "✏️",
+};
+
+export const eventLabel = (event: FeedEvent) => `${eventEmojis[event.type]} ${eventLabels[event.type]}`;
 
 export const vendorName = (event: FeedEvent) => vendorBySlug(event.vendorSlug)?.name ?? event.vendorSlug;
 

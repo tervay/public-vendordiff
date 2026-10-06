@@ -75,7 +75,7 @@ describe("deliverWebhooks", () => {
     await inStock(3);
     await run([item("v0", { stock: "out_of_stock" }), item("v1", { priceCents: 1200 }), item("v2")]);
     expect(await deliver()).toEqual({ sent: 1, failed: 0 });
-    expect(posts).toEqual(["Out of stock: test Product v0, $10.00\nhttps://vendordiff.com/v/test/1-product-v0/1"]);
+    expect(posts).toEqual(["❌ Out of stock: test Product v0, $10.00\nhttps://vendordiff.com/v/test/1-product-v0/1"]);
     expect(await stored(webhook.id)).toMatchObject({ lastEventId: await latestEventId(), failureCount: 0, lastError: null });
     expect(await deliver()).toEqual({ sent: 0, failed: 0 });
   });
@@ -107,7 +107,7 @@ describe("deliverWebhooks", () => {
     failing = () => false;
     posts = [];
     expect(await deliver()).toEqual({ sent: 3, failed: 0 });
-    expect(posts.map((post) => post.split(",")[0])).toEqual(["Out of stock: test Product v2", "Out of stock: test Product v3", "Out of stock: test Product v4"]);
+    expect(posts.map((post) => post.split(",")[0])).toEqual(["❌ Out of stock: test Product v2", "❌ Out of stock: test Product v3", "❌ Out of stock: test Product v4"]);
     expect(await stored(webhook.id)).toMatchObject({ failureCount: 0, lastError: null });
   });
 

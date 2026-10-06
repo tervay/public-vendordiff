@@ -1,4 +1,3 @@
-import { formatDate } from "@/lib/format";
 import type { Formatter } from ".";
 import { eventDetail, eventLabel, eventName, eventUrl, vendorName } from "./message";
 
@@ -11,7 +10,7 @@ export const slack: Formatter = {
   event: (event) => {
     const name = escape(eventName(event));
     const detail = escape(eventDetail(event, (price) => `~${price}~`));
-    const context = [vendorName(event), event.sku, formatDate(event.occurredAt)].filter(Boolean).join(" · ");
+    const context = [vendorName(event), event.sku].filter(Boolean).join(" · ");
     return JSON.stringify({
       text: `${eventLabel(event)}: ${name}`,
       blocks: [
