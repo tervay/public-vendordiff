@@ -15,7 +15,11 @@ export const slack: Formatter = {
     return JSON.stringify({
       text: `${eventLabel(event)}: ${name}`,
       blocks: [
-        { type: "section", text: { type: "mrkdwn", text: `*<${eventUrl(event)}|${name}>*\n${eventLabel(event)} · ${detail}` } },
+        {
+          type: "section",
+          text: { type: "mrkdwn", text: `*<${eventUrl(event)}|${name}>*\n${eventLabel(event)} · ${detail}` },
+          accessory: event.imageUrl ? { type: "image", image_url: event.imageUrl, alt_text: eventName(event) } : undefined,
+        },
         { type: "context", elements: [{ type: "mrkdwn", text: escape(context) }] },
       ],
     });

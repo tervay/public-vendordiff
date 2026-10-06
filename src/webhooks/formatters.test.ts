@@ -28,6 +28,7 @@ describe("slack", () => {
         {
           type: "section",
           text: { type: "mrkdwn", text: "*<https://vendordiff.com/v/wcp/3-gear/7|Gear &lt;b&gt; &amp; Co — 12T>*\nPrice change · ~$10.00~ → $12.00" },
+          accessory: { type: "image", image_url: "https://cdn.example.com/gear.png", alt_text: "Gear <b> & Co — 12T" },
         },
         { type: "context", elements: [{ type: "mrkdwn", text: "WCP · WCP-0001 · Oct 5, 2026, 12:00 PM ET" }] },
       ],

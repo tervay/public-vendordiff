@@ -115,7 +115,7 @@ Conventions:
 - Users add webhooks on `/account`, up to 3 each (`MAX_WEBHOOKS`). Each webhook has a type (`slack`, `discord` or `plaintext`), a URL, a list of vendors and a list of change types. It gets every change that matches both lists.
 - **`webhooks`** table: `last_event_id` is the webhook's cursor. A new webhook starts at the current `max(events.id)`, so it never receives older changes. RLS is on with no policies, because the URLs are secrets.
 - Each type is one file in `src/webhooks/` that exports a `Formatter`: `validUrl`, `event` (the body for one change) and `text` (the body for a plain message). To add a type, add an enum value, a migration and a formatter.
-  - **Slack:** Block Kit, with no image. Slack rejects a whole message if it can't download an image. URLs must be `https://hooks.slack.com/services/…`.
+  - **Slack:** Block Kit, with the product image as the section's accessory. Tested in October 2026: incoming webhooks accept a message even when its image URL is broken. URLs must be `https://hooks.slack.com/services/…`.
   - **Discord:** one embed per message, with `allowed_mentions: { parse: [] }`, so product titles can't ping anyone. URLs must be `https://discord.com/api/webhooks/…` or `https://discordapp.com/api/webhooks/…`.
   - **Plaintext:** a `text/plain` body. URLs must use `https` and a domain name; `localhost` and IP-address hosts are rejected.
 - `deliverWebhooks()` (`src/webhooks/deliver.ts`) runs at the end of every cron run:
