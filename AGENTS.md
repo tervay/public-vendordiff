@@ -120,7 +120,7 @@ Conventions:
   - **Plaintext:** a `text/plain` body. URLs must use `https` and a domain name; `localhost` and IP-address hosts are rejected.
 - `deliverWebhooks()` (`src/webhooks/deliver.ts`) runs at the end of every cron run:
   - It reads enabled webhooks, then every non-baseline event after the smallest cursor: 2 queries in total.
-  - Each webhook posts **one message per change**, 1 second apart. When one vendor has **4 or more** matching changes in a run, they go into one grouped message instead ("AndyMark: 12 changes", one line each). A group lists at most 30 changes, then "and N more" linking to `/history?vendor=`.
+  - Each webhook posts **one message per change**, 1 second apart. When one vendor has **3 or more** matching changes in a run, they go into one grouped message instead ("AndyMark: 12 changes", one line each). A group lists at most 30 changes, then "and N more" linking to `/history?vendor=`.
   - Grouped messages are packed to fit each platform's limits: Slack allows 50 blocks per message and 3,000 characters per section; Discord allows 4,096 characters per embed description. Names are cut to 200 characters.
   - At most 20 messages per webhook per run. Any extra changes become one "and N more changes" message linking to `/history`.
   - A failed post stops that webhook for the run. Messages are sent in order of their first event, and the cursor moves to just before the first event of the next unsent message, so the rest are retried next hour. Delivery is at least once.

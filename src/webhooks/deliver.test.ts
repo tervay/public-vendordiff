@@ -88,15 +88,15 @@ describe("deliverWebhooks", () => {
     expect((await stored(webhook.id)).lastEventId).toBe(await latestEventId());
   });
 
-  it("groups 4 or more changes at one vendor into one message", async () => {
-    await inStock(5);
-    await inStock(3, "other");
+  it("groups 3 or more changes at one vendor into one message", async () => {
+    await inStock(3);
+    await inStock(2, "other");
     await addWebhook({ vendorSlugs: ["test", "other"] });
-    await outOfStock(5);
-    await outOfStock(3, "other");
-    expect(await deliver()).toEqual({ sent: 4, failed: 0 });
-    expect(posts[0].split("\n").slice(0, 2)).toEqual(["test: 5 changes", "❌ Out of stock: Product v0, $10.00 https://vendordiff.com/v/test/1-product-v0/1"]);
-    expect(posts.slice(1).map((post) => post.split(",")[0])).toEqual(["❌ Out of stock: other Product v0", "❌ Out of stock: other Product v1", "❌ Out of stock: other Product v2"]);
+    await outOfStock(3);
+    await outOfStock(2, "other");
+    expect(await deliver()).toEqual({ sent: 3, failed: 0 });
+    expect(posts[0].split("\n").slice(0, 2)).toEqual(["test: 3 changes", "❌ Out of stock: Product v0, $10.00 https://vendordiff.com/v/test/1-product-v0/1"]);
+    expect(posts.slice(1).map((post) => post.split(",")[0])).toEqual(["❌ Out of stock: other Product v0", "❌ Out of stock: other Product v1"]);
   });
 
   it("lists at most 30 changes in a group", async () => {
@@ -110,26 +110,26 @@ describe("deliverWebhooks", () => {
   });
 
   it("posts at most 20 messages and then a summary", async () => {
-    const slugs = ids(8);
-    for (const slug of slugs) await inStock(3, slug);
+    const slugs = ids(11);
+    for (const slug of slugs) await inStock(2, slug);
     await addWebhook({ vendorSlugs: slugs });
-    for (const slug of slugs) await outOfStock(3, slug);
+    for (const slug of slugs) await outOfStock(2, slug);
     expect(await deliver()).toEqual({ sent: 21, failed: 0 });
-    expect(posts.at(-1)).toBe("and 4 more changes: https://vendordiff.com/history");
+    expect(posts.at(-1)).toBe("and 2 more changes: https://vendordiff.com/history");
     expect(await deliver()).toEqual({ sent: 0, failed: 0 });
   });
 
   it("resumes after the last successful post when one fails", async () => {
-    await inStock(3);
+    await inStock(2);
     const webhook = await addWebhook();
-    await outOfStock(3);
+    await outOfStock(2);
     failing = (attempt) => attempt === 2;
     expect(await deliver()).toEqual({ sent: 1, failed: 1 });
     expect(await stored(webhook.id)).toMatchObject({ lastEventId: webhook.lastEventId + 1, failureCount: 1, lastError: "Error: POST plaintext webhook failed: 400" });
     failing = () => false;
     posts = [];
-    expect(await deliver()).toEqual({ sent: 2, failed: 0 });
-    expect(posts.map((post) => post.split(",")[0])).toEqual(["❌ Out of stock: test Product v1", "❌ Out of stock: test Product v2"]);
+    expect(await deliver()).toEqual({ sent: 1, failed: 0 });
+    expect(posts.map((post) => post.split(",")[0])).toEqual(["❌ Out of stock: test Product v1"]);
     expect(await stored(webhook.id)).toMatchObject({ lastEventId: await latestEventId(), failureCount: 0, lastError: null });
   });
 

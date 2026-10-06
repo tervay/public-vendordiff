@@ -7,7 +7,7 @@ import { formatters, postWebhook, type Formatter } from ".";
 import { SITE_URL } from "./message";
 
 const MAX_POSTS = 20;
-const GROUP_MIN = 4;
+const GROUP_MIN = 3;
 const DISABLE_AFTER_FAILURES = 24;
 const DEADLINE_MS = 90_000;
 
