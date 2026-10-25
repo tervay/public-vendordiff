@@ -125,13 +125,13 @@ describe("deliverWebhooks", () => {
     expect((await stored(webhook.id)).lastEventId).toBe(await latestEventId());
   });
 
-  it("lists at most 30 changes in a group", async () => {
-    await inStock(35);
+  it("lists at most 15 changes in a group", async () => {
+    await inStock(20);
     await addWebhook();
-    await outOfStock(35);
+    await outOfStock(20);
     expect(await deliver()).toEqual({ sent: 1, failed: 0 });
     const lines = posts[0].split("\n");
-    expect(lines).toHaveLength(32);
+    expect(lines).toHaveLength(17);
     expect(lines.at(-1)).toBe("and 5 more: https://vendordiff.com/history?vendor=test");
   });
 

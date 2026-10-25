@@ -111,7 +111,7 @@ describe("group", () => {
     expect(blocks.length).toBeLessThanOrEqual(50);
     for (const block of blocks) expect(block.text.text.length).toBeLessThanOrEqual(3000);
     expect(blocks[0].text.text).toBe("*WCP: 40 changes*");
-    expect(blocks.at(-1).text.text).toBe("and 10 more · <https://vendordiff.com/history?vendor=wcp|see all on vendordiff>");
+    expect(blocks.at(-1).text.text).toBe("and 25 more · <https://vendordiff.com/history?vendor=wcp|see all on vendordiff>");
   });
 
   it("keeps Discord under 4096 characters in the description and 6000 in total", () => {

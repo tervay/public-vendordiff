@@ -6,7 +6,7 @@ import { vendorBySlug } from "@/vendors";
 export const SITE_URL = "https://vendordiff.com";
 
 const MAX_NAME_CHARS = 200;
-const MAX_GROUP_LINES = 30;
+const MAX_GROUP_LINES = 15;
 
 const truncate = (text: string) => (text.length > MAX_NAME_CHARS ? `${text.slice(0, MAX_NAME_CHARS - 1)}…` : text);
 
