@@ -64,6 +64,13 @@
       "when": 1791300138936,
       "tag": "0008_json_webhooks",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792966268774,
+      "tag": "0009_webhook_min_price",
+      "breakpoints": true
     }
   ]
 }

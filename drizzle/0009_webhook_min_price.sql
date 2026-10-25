@@ -1,0 +1,1 @@
+ALTER TABLE "webhooks" ADD COLUMN "min_price_cents" integer DEFAULT 0 NOT NULL;

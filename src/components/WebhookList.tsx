@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { webhooks } from "@/db/schema";
 import { EventBadge, VendorBadge } from "@/components/events";
 import { TestButton, WebhookForm } from "@/components/WebhookForm";
-import { formatDate, webhookTypeLabels } from "@/lib/format";
+import { formatDate, formatPrice, webhookTypeLabels } from "@/lib/format";
 import { createWebhook, deleteWebhook, setWebhookEnabled, testWebhook, updateWebhook } from "@/lib/webhook-actions";
 import { vendors } from "@/vendors";
 import { MAX_WEBHOOKS } from "@/webhooks";
@@ -46,6 +46,7 @@ function WebhookCard({ webhook }: { webhook: Webhook }) {
         {webhook.eventTypes.map((type) => (
           <EventBadge key={type} type={type} />
         ))}
+        {webhook.minPriceCents > 0 && <span className="rounded-full border border-hairline px-2 py-0.5 text-xs">{formatPrice(webhook.minPriceCents)}+</span>}
       </div>
       <div className="flex flex-wrap items-center gap-4">
         <TestButton action={testWebhook.bind(null, webhook.id)} />

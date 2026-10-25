@@ -10,7 +10,7 @@ import { jsonVersions, LATEST_JSON_VERSION } from "@/webhooks/json";
 
 type Action = (state: FormState, formData: FormData) => Promise<FormState>;
 
-const defaults: FormValues ={ type: "discord", url: "", jsonVersion: null, vendorSlugs: vendors.map((v) => v.slug), eventTypes: ["new", "restock"] };
+const defaults: FormValues ={ type: "discord", url: "", jsonVersion: null, vendorSlugs: vendors.map((v) => v.slug), eventTypes: ["new", "restock"], minPriceCents: 0 };
 
 const webhookTypes = Object.keys(webhookTypeLabels) as WebhookType[];
 const eventTypes = Object.keys(eventLabels) as EventType[];
@@ -80,6 +80,21 @@ export function WebhookForm({ action, webhook: saved = defaults, submitLabel }: 
           ))}
         </div>
       </fieldset>
+      <label className="block space-y-2">
+        <span className="text-sm font-medium">Minimum price</span>
+        <span className="flex items-center gap-3">
+          <input
+            name="minPrice"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0"
+            defaultValue={webhook.minPriceCents ? webhook.minPriceCents / 100 : ""}
+            className={`w-32 ${fieldClass}`}
+          />
+          <span className="text-sm text-muted">Skip changes for parts under this price.</span>
+        </span>
+      </label>
       <div className="flex items-center gap-3">
         <button type="submit" disabled={pending} className="rounded-lg bg-foreground px-4 py-2 text-background disabled:opacity-50">
           {submitLabel}

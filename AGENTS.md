@@ -113,7 +113,7 @@ Conventions:
 
 ## Webhooks
 
-- Users add webhooks on `/account`, up to 3 each (`MAX_WEBHOOKS`). Each webhook has a type (`slack`, `discord`, `plaintext` or `json`), a URL, a list of vendors and a list of change types. It gets every change that matches both lists.
+- Users add webhooks on `/account`, up to 3 each (`MAX_WEBHOOKS`). Each webhook has a type (`slack`, `discord`, `plaintext` or `json`), a URL, a list of vendors, a list of change types and a minimum price (`min_price_cents`, 0 for none). It gets every change that matches both lists and whose price is at or above the minimum. For a price change, the higher of the old and new price counts.
 - **`webhooks`** table: `last_event_id` is the webhook's cursor. A new webhook starts at the current `max(events.id)`, so it never receives older changes. RLS is on with no policies, because the URLs are secrets.
 - Each type is one file in `src/webhooks/` that exports a `Formatter`: `validUrl`, `event` (the body for one change), `group` (the body for several changes at one vendor) and `text` (the body for a plain message). To add a type, add an enum value, a migration and a formatter.
   - **Slack:** Block Kit, with the product image as the section's accessory. Tested in October 2026: incoming webhooks accept a message even when its image URL is broken. URLs must be `https://hooks.slack.com/services/…`.

@@ -13,7 +13,7 @@ import { formatterFor, formatters, isWebhookType, MAX_WEBHOOKS, parseWebhookUrl,
 import { latestEventId, newestEvent } from "@/webhooks/deliver";
 import { isJsonVersion } from "@/webhooks/json";
 
-export type FormValues = { type: string; url: string; jsonVersion: number | null; vendorSlugs: string[]; eventTypes: string[] };
+export type FormValues = { type: string; url: string; jsonVersion: number | null; vendorSlugs: string[]; eventTypes: string[]; minPriceCents: number };
 export type FormState = { error?: string; message?: string; values?: FormValues } | null;
 
 async function requireUserId() {
@@ -31,6 +31,7 @@ function parseForm(formData: FormData) {
     jsonVersion: Number(formData.get("jsonVersion")) || null,
     vendorSlugs: formData.getAll("vendors").map(String),
     eventTypes: formData.getAll("types").map(String),
+    minPriceCents: Math.round(Number(formData.get("minPrice") ?? "") * 100),
   };
   const invalid = (error: string) => ({ error, values: submitted });
   const { type } = submitted;
@@ -43,7 +44,9 @@ function parseForm(formData: FormData) {
   if (vendorSlugs.length === 0) return invalid("Choose at least one vendor.");
   const eventTypes = submitted.eventTypes.filter(isEventType);
   if (eventTypes.length === 0) return invalid("Choose at least one change type.");
-  return { values: { type, url, jsonVersion, vendorSlugs, eventTypes } };
+  const { minPriceCents } = submitted;
+  if (!(minPriceCents >= 0)) return invalid("Enter a minimum price of $0 or more.");
+  return { values: { type, url, jsonVersion, vendorSlugs, eventTypes, minPriceCents } };
 }
 
 export async function createWebhook(_: FormState, formData: FormData): Promise<FormState> {

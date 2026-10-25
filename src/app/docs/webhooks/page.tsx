@@ -47,7 +47,7 @@ export default function WebhookDocsPage() {
     <div className="max-w-3xl space-y-6">
       <h1 className="text-2xl font-semibold">JSON webhooks</h1>
       <ul className="list-disc space-y-1 pl-5">
-        <li>Each hourly check sends one POST with every change that matches your vendors and change types.</li>
+        <li>Each hourly check sends one POST with every change that matches your vendors, change types and minimum price.</li>
         <li>A check with more than 1,000 changes sends them in several POSTs of up to 1,000 each.</li>
         <li>
           Bodies use <code className={codeClass}>content-type: application/json</code>.

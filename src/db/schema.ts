@@ -169,6 +169,7 @@ export const webhooks = pgTable(
     jsonVersion: integer("json_version"),
     vendorSlugs: text("vendor_slugs").array().notNull(),
     eventTypes: eventType("event_types").array().notNull(),
+    minPriceCents: integer("min_price_cents").notNull().default(0),
     enabled: boolean("enabled").notNull().default(true),
     lastEventId: integer("last_event_id").notNull(),
     failureCount: integer("failure_count").notNull().default(0),

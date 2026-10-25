@@ -66,7 +66,12 @@ async function deliver(webhook: Webhook, pending: FeedEvent[], pauseMs: number, 
   const newer = pending.filter((event) => event.id > webhook.lastEventId);
   if (newer.length === 0) return { sent: 0, error: null };
   const lastId = newer.at(-1)!.id;
-  const matching = newer.filter((event) => webhook.vendorSlugs.includes(event.vendorSlug) && webhook.eventTypes.includes(event.type));
+  const matching = newer.filter(
+    (event) =>
+      webhook.vendorSlugs.includes(event.vendorSlug) &&
+      webhook.eventTypes.includes(event.type) &&
+      Math.max(event.priceCents, event.oldPriceCents ?? 0) >= webhook.minPriceCents,
+  );
   const formatter = formatterFor(webhook);
   const all = buildMessages(formatter, matching);
   const messages = all.slice(0, MAX_POSTS);

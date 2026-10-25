@@ -99,6 +99,19 @@ describe("deliverWebhooks", () => {
     expect(posts.slice(1).map((post) => post.split(",")[0])).toEqual(["❌ Out of stock: other Product v0", "❌ Out of stock: other Product v1"]);
   });
 
+  it("skips changes under the minimum price, using the higher of the old and new price", async () => {
+    await inStock(2);
+    const webhook = await addWebhook({ eventTypes: ["out_of_stock", "price_change"], minPriceCents: 1500 });
+    await run([item("v0", { stock: "out_of_stock" }), item("v1", { priceCents: 2000 })]);
+    await run([item("v0", { stock: "out_of_stock" }), item("v1", { priceCents: 1200 })]);
+    expect(await deliver()).toEqual({ sent: 2, failed: 0 });
+    expect(posts.map((post) => post.split("\n")[0])).toEqual([
+      "💲 Price change: test Product v1, $10.00 → $20.00 (+100%)",
+      "💲 Price change: test Product v1, $20.00 → $12.00 (-40%)",
+    ]);
+    expect((await stored(webhook.id)).lastEventId).toBe(await latestEventId());
+  });
+
   it("sends every change in one JSON body", async () => {
     await inStock(3);
     await inStock(2, "other");
