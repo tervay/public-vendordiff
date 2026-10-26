@@ -5,10 +5,11 @@ export type Vendor = {
   url: string;
   icon: string;
   ignoredShopifyVendors?: string[];
+  combinedListings?: boolean;
 };
 
 export const vendors: Vendor[] = [
-  { slug: "andymark", name: "AndyMark", platform: "shopify", url: "https://www.andymark.com", icon: "/vendors/andymark.png" },
+  { slug: "andymark", name: "AndyMark", platform: "shopify", url: "https://www.andymark.com", icon: "/vendors/andymark.png", combinedListings: true },
   { slug: "armabot", name: "Armabot", platform: "shopify", url: "https://www.armabot.com", icon: "/vendors/armabot.png" },
   { slug: "ctre", name: "CTRE", platform: "shopify", url: "https://store.ctr-electronics.com", icon: "/vendors/ctre.png" },
   { slug: "lastanvil", name: "Last Anvil", platform: "shopify", url: "https://lastanvil.com", icon: "/vendors/lastanvil.png" },

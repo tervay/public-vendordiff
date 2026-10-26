@@ -1,7 +1,20 @@
 import { eventLabels } from "@/lib/format";
 import type { FeedEvent } from "@/lib/queries";
 import type { Formatter } from ".";
-import { eventDetail, eventEmoji, eventLabel, eventName, eventUrl, groupTitle, packLines, vendorHistoryUrl, vendorName, type Markup } from "./message";
+import {
+  eventDetail,
+  eventEmoji,
+  eventLabel,
+  eventName,
+  eventUrl,
+  groupTitle,
+  packLines,
+  rowDetail,
+  vendorHistoryUrl,
+  vendorName,
+  type Markup,
+  type Row,
+} from "./message";
 
 const MAX_BLOCKS = 50;
 const SECTION_CHARS = 3000;
@@ -32,8 +45,8 @@ export const slack: Formatter = {
   },
   group: (events) => {
     const title = escape(groupTitle(events));
-    const lines = events.map((event) => `${eventLabel(event)} · ${link(event)} · ${escape(eventDetail(event, markup))}`);
-    const { chunks, hidden } = packLines(lines, SECTION_CHARS, MAX_BLOCKS - 2);
+    const line = (row: Row) => `${eventLabel(row.events[0])} · *<${row.url}|${escape(row.name)}>* · ${escape(rowDetail(row, markup))}`;
+    const { chunks, hidden } = packLines(events, line, SECTION_CHARS, MAX_BLOCKS - 2);
     const more = hidden > 0 ? [section(`and ${hidden} more · <${vendorHistoryUrl(events[0])}|see all on vendordiff>`)] : [];
     return JSON.stringify({ text: title, blocks: [section(`*${title}*`), ...chunks.map(section), ...more] });
   },

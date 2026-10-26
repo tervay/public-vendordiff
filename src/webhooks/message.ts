@@ -10,25 +10,47 @@ const MAX_GROUP_LINES = 15;
 
 const truncate = (text: string) => (text.length > MAX_NAME_CHARS ? `${text.slice(0, MAX_NAME_CHARS - 1)}…` : text);
 
-export const eventUrl = (event: FeedEvent) => `${SITE_URL}/v/${event.vendorSlug}/${event.productId}-${event.handle}/${event.variantId}`;
+const productUrl = (event: FeedEvent) => `${SITE_URL}/v/${event.vendorSlug}/${event.productId}-${event.handle}`;
+
+export const eventUrl = (event: FeedEvent) => `${productUrl(event)}/${event.variantId}`;
 
 export const vendorHistoryUrl = (event: FeedEvent) => `${SITE_URL}/history?vendor=${event.vendorSlug}`;
+
+const searchUrl = (vendor: string, q: string) => `${SITE_URL}/search?${new URLSearchParams({ vendor, q })}`;
 
 export const eventName = (event: FeedEvent) => truncate(variantName(event.productTitle, event.variantTitle));
 
 export const groupTitle = (events: FeedEvent[]) => `${vendorName(events[0])}: ${events.length} changes`;
 
-export function packLines(lines: string[], chunkChars: number, maxChunks: number) {
+export type Row = { events: FeedEvent[]; name: string; url: string };
+
+const baseTitle = (event: FeedEvent) => event.productTitle.split(" - ")[0];
+
+const listingKey = (event: FeedEvent) => (vendorBySlug(event.vendorSlug)?.combinedListings ? baseTitle(event) : event.productId);
+
+const productCount = (events: FeedEvent[]) => new Set(events.map((event) => event.productId)).size;
+
+function toRow(events: FeedEvent[]): Row {
+  const [first] = events;
+  if (events.length === 1) return { events, name: eventName(first), url: eventUrl(first) };
+  if (productCount(events) === 1) return { events, name: truncate(first.productTitle), url: productUrl(first) };
+  return { events, name: truncate(baseTitle(first)), url: searchUrl(first.vendorSlug, baseTitle(first)) };
+}
+
+const groupRows = (events: FeedEvent[]) => [...Map.groupBy(events, (event) => `${event.type}:${listingKey(event)}`).values()].map(toRow);
+
+export function packLines(events: FeedEvent[], line: (row: Row) => string, chunkChars: number, maxChunks: number) {
   const chunks: string[] = [];
-  let shown = 0;
-  for (const line of lines.slice(0, MAX_GROUP_LINES)) {
+  let hidden = events.length;
+  for (const row of groupRows(events).slice(0, MAX_GROUP_LINES)) {
+    const text = line(row);
     const last = chunks.at(-1);
-    if (last !== undefined && last.length + 1 + line.length <= chunkChars) chunks[chunks.length - 1] = `${last}\n${line}`;
-    else if (chunks.length < maxChunks) chunks.push(line);
+    if (last !== undefined && last.length + 1 + text.length <= chunkChars) chunks[chunks.length - 1] = `${last}\n${text}`;
+    else if (chunks.length < maxChunks) chunks.push(text);
     else break;
-    shown++;
+    hidden -= row.events.length;
   }
-  return { chunks, hidden: lines.length - shown };
+  return { chunks, hidden };
 }
 
 const eventEmojis: Record<EventType, string> = {
@@ -61,4 +83,33 @@ export function eventDetail(event: FeedEvent, { strike, bold }: Markup) {
     return `${strike(formatPrice(event.oldPriceCents))} → ${bold(formatPrice(event.priceCents))} (${change})`;
   }
   return formatPrice(event.priceCents);
+}
+
+function range(values: number[], format: (value: number) => string, separator = "–") {
+  const [low, high] = [Math.min(...values), Math.max(...values)];
+  return low === high ? format(low) : `${format(low)}${separator}${format(high)}`;
+}
+
+export function rowDetail({ events }: Row, markup: Markup) {
+  if (events.length === 1) return eventDetail(events[0], markup);
+  const products = productCount(events);
+  const count = `${events.length} variants${products > 1 ? ` in ${products} products` : ""}`;
+  const prices = range(
+    events.map((event) => event.priceCents),
+    formatPrice,
+  );
+  switch (events[0].type) {
+    case "rename":
+      return count;
+    case "price_change": {
+      const changes = range(
+        events.map((event) => event.priceCents / event.oldPriceCents! - 1),
+        formatChange,
+        " to ",
+      );
+      return `${count} · ${markup.bold(prices)} (${changes})`;
+    }
+    default:
+      return `${count} · ${prices}`;
+  }
 }

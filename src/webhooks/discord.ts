@@ -1,6 +1,6 @@
 import type { EventType } from "@/db/schema";
 import type { Formatter } from ".";
-import { eventDetail, eventLabel, eventName, eventUrl, groupTitle, packLines, vendorHistoryUrl, vendorName, type Markup } from "./message";
+import { eventDetail, eventLabel, eventName, eventUrl, groupTitle, packLines, rowDetail, vendorHistoryUrl, vendorName, type Markup, type Row } from "./message";
 
 const DISCORD_HOSTS = new Set(["discord.com", "discordapp.com"]);
 
@@ -44,8 +44,8 @@ export const discord: Formatter = {
       ],
     }),
   group: (events) => {
-    const lines = events.map((event) => `${eventLabel(event)} · [${escapeLink(eventName(event))}](${eventUrl(event)}) · ${eventDetail(event, markup)}`);
-    const { chunks, hidden } = packLines(lines, DESCRIPTION_CHARS - MORE_LINE_CHARS, 1);
+    const line = (row: Row) => `${eventLabel(row.events[0])} · [${escapeLink(row.name)}](${row.url}) · ${rowDetail(row, markup)}`;
+    const { chunks, hidden } = packLines(events, line, DESCRIPTION_CHARS - MORE_LINE_CHARS, 1);
     const more = hidden > 0 ? `\n[and ${hidden} more](${vendorHistoryUrl(events[0])})` : "";
     return JSON.stringify({
       allowed_mentions: noMentions,

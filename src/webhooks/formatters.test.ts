@@ -103,7 +103,7 @@ describe("json v1", () => {
 
 describe("group", () => {
   const longEvents = Array.from({ length: 40 }, (_, i) =>
-    event({ id: i, variantId: i, productTitle: "X".repeat(500), variantTitle: "Y".repeat(500), handle: "h".repeat(200) }),
+    event({ id: i, variantId: i, productId: i, productTitle: `${i}${"X".repeat(500)}`, variantTitle: "Y".repeat(500), handle: "h".repeat(200) }),
   );
 
   it("keeps Slack under 50 blocks and 3000 characters per section", () => {
@@ -121,8 +121,44 @@ describe("group", () => {
     expect(embed.description).toMatch(/\[and \d+ more\]\(https:\/\/vendordiff\.com\/history\?vendor=wcp\)$/);
   });
 
+  const swerve = (id: number, productId: number, priceCents: number, vendorSlug = "andymark") =>
+    event({ id, variantId: id, productId, priceCents, vendorSlug, type: "removed", productTitle: `SDS MK4 - Gear Ratio:L${productId}`, handle: "mk4" });
+
+  it("combines changes of one type to one product into one line", () => {
+    const events = [swerve(1, 3, 28390, "wcp"), swerve(2, 3, 43350, "wcp"), event({ id: 3 })];
+    expect(formatters.plaintext.group(events).split("\n")).toEqual([
+      "WCP: 3 changes",
+      "🗑️ Removed: SDS MK4 - Gear Ratio:L3, 2 variants · $283.90–$433.50 https://vendordiff.com/v/wcp/3-mk4",
+      "💲 Price change: Gear <b> & Co — 12T, $10.00 → $12.00 (+20%) https://vendordiff.com/v/wcp/3-gear/7",
+    ]);
+  });
+
+  it("combines AndyMark products that share a base title", () => {
+    const events = [swerve(1, 3, 28390), swerve(2, 3, 43350), swerve(3, 4, 44200)];
+    expect(formatters.plaintext.group(events).split("\n")[1]).toBe(
+      "🗑️ Removed: SDS MK4, 3 variants in 2 products · $283.90–$442.00 https://vendordiff.com/search?vendor=andymark&q=SDS+MK4",
+    );
+  });
+
+  it("keeps products with a shared base title apart at other vendors", () => {
+    const events = [swerve(1, 3, 28390, "wcp"), swerve(2, 3, 43350, "wcp"), swerve(3, 4, 44200, "wcp")];
+    expect(formatters.plaintext.group(events).split("\n")).toHaveLength(3);
+  });
+
+  it("shows price and percent ranges for combined price changes", () => {
+    const events = [event({ id: 1 }), event({ id: 2, oldPriceCents: 2000, priceCents: 2200 }), event({ id: 3, oldPriceCents: 1000, priceCents: 1500 })];
+    expect(JSON.parse(formatters.slack.group(events)).blocks[1].text.text).toBe(
+      "💲 Price change · *<https://vendordiff.com/v/wcp/3-gear|Gear &lt;b&gt; &amp; Co>* · 3 variants · *$12.00–$22.00* (+10% to +50%)",
+    );
+  });
+
+  it("counts hidden changes, not lines", () => {
+    const events = [...Array.from({ length: 15 }, (_, i) => event({ id: i, productId: i, productTitle: `P${i}` })), swerve(15, 99, 100, "wcp"), swerve(16, 99, 100, "wcp")];
+    expect(formatters.plaintext.group(events).split("\n").at(-1)).toBe("and 2 more: https://vendordiff.com/history?vendor=wcp");
+  });
+
   it("escapes brackets in Discord link text", () => {
-    const [embed] = JSON.parse(formatters.discord.group([event({ productTitle: "Gear [12T]", variantTitle: "" }), event()])).embeds;
+    const [embed] = JSON.parse(formatters.discord.group([event({ productTitle: "Gear [12T]", variantTitle: "" }), event({ productId: 4 })])).embeds;
     expect(embed.description).toContain("[Gear \\[12T\\]](https://vendordiff.com/v/wcp/3-gear/7)");
   });
 });
